@@ -1,0 +1,156 @@
+configuration:
+  log_level:
+    name: Log level
+    description: Detail level for OpenPool add-on logs.
+  poll_interval_s:
+    name: Update interval
+    description: Seconds between Home Assistant polling cycles and UI live updates.
+  connection:
+    name: Home Assistant connection
+    description: Fallback access for systems without a Supervisor token.
+    fields:
+      auth_mode:
+        name: Authentication
+        description: Use the Supervisor token or optionally a dedicated OpenPool user token.
+      homeassistant_url:
+        name: Home Assistant URL
+        description: Internal URL of the Home Assistant instance.
+      access_token:
+        name: Long-lived access token
+        description: Optional fallback token for the Home Assistant REST API.
+  features:
+    name: Features
+    description: Enable or disable optional OpenPool control areas.
+    fields:
+      heat_pump_control:
+        name: Heat pump control
+        description: Controls and monitors the heat pump, including PV release and run-on protection.
+      weather_control:
+        name: Weather control
+        description: Uses the daily forecast for pump profile recommendation or automation.
+  entities:
+    name: Home Assistant entities
+    description: Entities OpenPool uses for display and control.
+    fields:
+      pump_switch:
+        name: Pump/chlorinator switch
+      heater_climate:
+        name: Heat pump climate entity
+      heater_operation_mode:
+        name: Heat pump operating mode selector
+        description: Optional Home Assistant select entity from which OpenPool reads the available heat pump start modes.
+      weather:
+        name: Weather entity
+      pv_generation:
+        name: PV production sensor
+      pv_export:
+        name: Grid export sensor
+      grid_import:
+        name: Grid import sensor
+      pump_power:
+        name: Pump power sensor
+      pump_current:
+        name: Pump current sensor
+      pump_voltage:
+        name: Pump voltage sensor
+      pump_signal:
+        name: Pump signal sensor
+      heater_power:
+        name: Heat pump power sensor
+      heater_current:
+        name: Heat pump current sensor
+      heater_voltage:
+        name: Heat pump voltage sensor
+      heater_fan:
+        name: Heat pump fan sensor
+      heater_ambient:
+        name: Heat pump ambient air sensor
+      heater_water_in:
+        name: Heat pump water inlet sensor
+      heater_water_out:
+        name: Heat pump water outlet sensor
+  thresholds:
+    name: Thresholds
+    description: Thresholds for heat-pump release, stability times and temperature range.
+    fields:
+      pv_start_export_w:
+        name: Heat pump start release in watts
+        description: Available PV power that must be reached before the heat pump may start.
+      pv_stop_export_w:
+        name: Heat pump stop release in watts
+        description: Available PV power below which the heat pump is switched off again.
+      pv_start_stable_minutes:
+        name: Heat pump start stable in minutes
+        description: Minutes the heat-pump release condition must stay fulfilled.
+      pv_stop_stable_minutes:
+        name: Heat pump stop stable in minutes
+        description: Minutes the heat-pump stop boundary must stay below the configured value.
+      heater_temp_min:
+        name: Minimum heat pump temperature
+        description: Lower bound of the temperature slider in the OpenPool UI.
+      heater_temp_max:
+        name: Maximum heat pump temperature
+        description: Upper bound of the temperature slider in the OpenPool UI.
+      pump_power_without_chlorinator_w:
+        name: Pump power without chlorinator
+        description: Typical pump power in watts when the chlorinator is inactive.
+      pump_power_with_chlorinator_w:
+        name: Pump power with chlorinator
+        description: From this pump power in watts, OpenPool shows the chlorinator as active.
+  profiles:
+    name: Profiles
+    description: Time windows for the OpenPool control logic.
+    fields:
+      pump_start:
+        name: Pump start
+      pump_end:
+        name: Pump end
+      bad_weather_start:
+        name: Bad weather start
+      bad_weather_end:
+        name: Bad weather end
+      night_swim_duration_hours:
+        name: Night swimming duration in hours
+        description: Maximum runtime of the night swimming profile in hours before OpenPool ends it automatically.
+  restart_pulses:
+    name: Restart pulses
+    description: Automatic short power-off pulses for the chlorinator.
+    fields:
+      pulse_1:
+        name: Pulse 1
+        fields:
+          enabled:
+            name: Enabled
+          time:
+            name: Time
+          duration_s:
+            name: Duration in seconds
+      pulse_2:
+        name: Pulse 2
+        fields:
+          enabled:
+            name: Enabled
+          time:
+            name: Time
+          duration_s:
+            name: Duration in seconds
+      pulse_3:
+        name: Pulse 3
+        fields:
+          enabled:
+            name: Enabled
+          time:
+            name: Time
+          duration_s:
+            name: Duration in seconds
+      pulse_4:
+        name: Pulse 4
+        fields:
+          enabled:
+            name: Enabled
+          time:
+            name: Time
+          duration_s:
+            name: Duration in seconds
+network:
+  8099/tcp: OpenPool web interface

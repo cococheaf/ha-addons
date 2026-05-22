@@ -1,0 +1,3115 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OpenPool - OpenSource Pool System Controller</title>
+  <link rel="icon" href="icons/favicon.ico" sizes="any" />
+  <link rel="icon" href="icons/openpool-icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="manifest" href="icons/site.webmanifest" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --bg-soft: #111c33;
+      --card: #18243d;
+      --card-2: #1f2d49;
+      --text: #e5edf8;
+      --muted: #90a4c4;
+      --line: rgba(255,255,255,.09);
+      --accent: #37d4a6;
+      --accent-2: #50b7ff;
+      --warn: #f6c85f;
+      --danger: #ff6b6b;
+      --ok: #4ade80;
+      --shadow: 0 10px 30px rgba(0,0,0,.22);
+      --radius: 14px;
+      --page-gap: 10px;
+      --card-pad: 10px;
+      --tile-height: 64px;
+      --button-width: 142px;
+      --button-height: 64px;
+      --tile-radius: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      min-width: 320px;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(80,183,255,.18), transparent 32rem),
+        radial-gradient(circle at top right, rgba(55,212,166,.14), transparent 30rem),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.45;
+      overflow-x: hidden;
+    }
+
+    /* App shell: compact title bar plus one responsive dashboard surface. */
+    .app {
+      width: min(1320px, calc(100% - (var(--page-gap) * 2)));
+      margin: 0 auto;
+      padding: 10px 0 14px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: clamp(10px, 1.5vw, 18px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      min-height: 42px;
+      justify-self: start;
+    }
+
+    .logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent-2), var(--accent));
+      display: grid;
+      place-items: center;
+      box-shadow: 0 10px 24px rgba(55,212,166,.24);
+      font-size: 21px;
+    }
+
+    .logo img {
+      width: 28px;
+      height: 28px;
+      display: block;
+    }
+
+    .brand-title {
+      height: 38px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 19px;
+      letter-spacing: 0;
+      line-height: 1;
+    }
+
+    .brand-tagline {
+      margin: 0;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.045);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      backdrop-filter: blur(10px);
+      white-space: nowrap;
+      height: 42px;
+      min-width: 176px;
+      width: auto;
+    }
+
+    header > .pill {
+      justify-self: end;
+      min-width: 230px;
+    }
+
+    .pill.connected {
+      border-color: rgba(74,222,128,.34);
+      background: rgba(74,222,128,.12);
+    }
+
+    .pill.disconnected {
+      border-color: rgba(255,107,107,.42);
+      background: rgba(255,107,107,.12);
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--ok);
+      box-shadow: 0 0 0 5px rgba(74,222,128,.12);
+    }
+
+    .connected .dot {
+      animation: connectedPulse 1.6s ease-in-out infinite;
+    }
+
+    .disconnected .dot {
+      background: var(--danger);
+      box-shadow: 0 0 0 5px rgba(255,107,107,.12);
+    }
+
+    /* The dashboard uses a 12-column grid on wide screens and folds down at
+       tablet and phone widths without changing the control order. */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: clamp(9px, 1vw, 14px);
+      align-items: stretch;
+    }
+
+    .dashboard .hero,
+    .dashboard .controls-panel {
+      grid-column: 1 / -1;
+    }
+
+    .dashboard .decision-card,
+    .dashboard .sensor-list-card {
+      grid-column: span 6;
+      align-self: stretch;
+      height: auto;
+    }
+
+    .dashboard .decision-card .card-inner,
+    .dashboard .sensor-list-card .card-inner {
+      height: 100%;
+    }
+
+    .dashboard .decision-card {
+      min-height: clamp(360px, 42vh, 440px);
+    }
+
+    .grid > *,
+    .mode-grid > * {
+      min-width: 0;
+    }
+
+    .feature-hidden {
+      display: none !important;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.025));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: visible;
+      height: 100%;
+    }
+
+    .card-inner {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-inner { padding: var(--card-pad); }
+
+    /* Dashboard status card: live system tiles plus master enable switch. */
+    .hero {
+      min-height: 0;
+      position: relative;
+      background:
+        radial-gradient(circle at 14% 12%, rgba(80,183,255,.16), transparent 20rem),
+        radial-gradient(circle at 84% 8%, rgba(55,212,166,.13), transparent 18rem),
+        linear-gradient(135deg, rgba(31,45,73,.98), rgba(24,36,61,.98));
+    }
+
+    .hero .section-title {
+      margin-bottom: 8px;
+    }
+
+    .metric .hint,
+    .mode small {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      margin: -1px !important;
+      overflow: hidden !important;
+      clip: rect(0, 0, 0, 0) !important;
+      white-space: nowrap !important;
+      border: 0 !important;
+    }
+
+    .master,
+    .metric,
+    .mode,
+    .temperature-value {
+      position: relative;
+    }
+
+    [data-tooltip]::before,
+    [data-tooltip]::after {
+      position: absolute;
+      left: 50%;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .14s ease, transform .14s ease;
+      z-index: 30;
+    }
+
+    [data-tooltip]::before {
+      content: "";
+      bottom: calc(100% + 8px);
+      width: 10px;
+      height: 10px;
+      background: rgba(11,18,32,.98);
+      border-right: 1px solid rgba(255,255,255,.12);
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      transform: translate(-50%, 3px) rotate(45deg);
+    }
+
+    [data-tooltip]::after {
+      content: attr(data-tooltip);
+      bottom: calc(100% + 12px);
+      width: max-content;
+      max-width: min(280px, 84vw);
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(11,18,32,.98);
+      color: var(--text);
+      box-shadow: 0 12px 28px rgba(0,0,0,.30);
+      font-size: 12px;
+      line-height: 1.25;
+      text-align: center;
+      white-space: normal;
+      transform: translate(-50%, 3px);
+    }
+
+    [data-tooltip]:hover,
+    [data-tooltip]:focus-visible,
+    [data-tooltip]:focus-within {
+      z-index: 40;
+    }
+
+    [data-tooltip]:hover::before,
+    [data-tooltip]:hover::after,
+    [data-tooltip]:focus-visible::before,
+    [data-tooltip]:focus-visible::after,
+    [data-tooltip]:focus-within::before,
+    [data-tooltip]:focus-within::after {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .master {
+      display: grid;
+      grid-template-rows: auto auto;
+      align-content: center;
+      justify-items: center;
+      gap: 0;
+      justify-content: center;
+      text-align: center;
+      border-color: rgba(55,212,166,.42);
+      background:
+        linear-gradient(90deg, var(--accent) 0 3px, transparent 3px),
+        linear-gradient(135deg, rgba(55,212,166,.16), rgba(80,183,255,.07)),
+        rgba(15,23,42,.52);
+      box-shadow:
+        inset 0 0 0 1px rgba(55,212,166,.10),
+        0 10px 24px rgba(55,212,166,.08);
+      overflow: hidden;
+    }
+
+    .master-control {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 0;
+      line-height: 1;
+    }
+
+    .master .label {
+      color: var(--text);
+      font-weight: 780;
+    }
+
+    .master .value {
+      font-size: 19px;
+      line-height: 1.05;
+    }
+
+    .switch {
+      width: 48px;
+      height: 26px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.16);
+      padding: 3px;
+      position: relative;
+      transition: .2s ease;
+    }
+
+    .switch.on { background: rgba(55,212,166,.95); }
+    .knob {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      transition: .2s ease;
+      box-shadow: 0 5px 14px rgba(0,0,0,.25);
+    }
+    .switch.on .knob { transform: translateX(22px); }
+
+    .master .switch {
+      width: 36px;
+      height: 20px;
+      padding: 3px;
+      flex: 0 0 auto;
+    }
+
+    .master .switch .knob {
+      width: 14px;
+      height: 14px;
+    }
+
+    .master .switch.on .knob {
+      transform: translateX(16px);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+      gap: 8px;
+      grid-auto-rows: 1fr;
+    }
+
+    .metric {
+      background: rgba(15,23,42,.48);
+      border: 1px solid var(--line);
+      border-radius: var(--tile-radius);
+      padding: 9px;
+      min-width: 0;
+      min-height: var(--tile-height);
+      height: var(--tile-height);
+      display: grid;
+      grid-template-rows: auto auto;
+      align-content: center;
+      justify-items: center;
+      text-align: center;
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    .metric .value {
+      font-weight: 760;
+      font-size: 19px;
+      line-height: 1.05;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .metric .value.status-on,
+    #master-state-label.status-on {
+      color: var(--ok);
+    }
+
+    .metric .value.status-off,
+    #master-state-label.status-off {
+      color: var(--danger);
+    }
+
+    .metric .hint {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 5px;
+      overflow: visible;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .section-title h3 {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .section-title span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* Mode tiles are intentionally button-like cards for touch-first use on tablets. */
+    .mode-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(var(--button-width), var(--button-width)));
+      gap: 8px;
+      align-items: stretch;
+      grid-auto-rows: var(--button-height);
+      justify-content: center;
+      width: 100%;
+    }
+
+    .mode-grid.pump-modes {
+      grid-template-columns: repeat(auto-fill, minmax(var(--button-width), var(--button-width)));
+    }
+
+    .weather-mode-grid {
+      grid-template-columns: repeat(2, minmax(var(--button-width), var(--button-width)));
+      margin-bottom: 0;
+    }
+
+    .weather-mode-grid .mode {
+      min-height: var(--tile-height);
+    }
+
+    .mode {
+      background: rgba(255,255,255,.045);
+      border: 1px solid var(--line);
+      border-radius: var(--tile-radius);
+      padding: 8px;
+      cursor: pointer;
+      transition: .16s ease;
+      min-width: 0;
+      width: var(--button-width);
+      min-height: var(--button-height);
+      height: var(--button-height);
+      display: grid;
+      grid-template-rows: auto auto;
+      align-content: center;
+      justify-items: center;
+      text-align: center;
+    }
+
+    .mode:hover { transform: translateY(-1px); background: rgba(255,255,255,.07); }
+    .mode.active {
+      border-color: rgba(55,212,166,.7);
+      background: rgba(55,212,166,.13);
+      box-shadow: inset 0 0 0 1px rgba(55,212,166,.18);
+    }
+
+    .mode.action-mode {
+      border-color: rgba(255,107,107,.42);
+      background: rgba(255,107,107,.14);
+    }
+
+    .mode.action-mode:hover {
+      background: rgba(255,107,107,.20);
+    }
+
+    .mode .icon { font-size: 17px; margin-bottom: 2px; }
+    .mode strong {
+      display: block;
+      font-size: 12px;
+      line-height: 1.12;
+      margin-bottom: 0;
+      overflow-wrap: anywhere;
+    }
+    .mode small {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.16;
+      overflow: visible;
+      overflow-wrap: anywhere;
+      align-self: start;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+    }
+
+    /* Compact climate-style target temperature control. */
+    .temperature-control {
+      display: grid;
+      gap: 7px;
+      margin-top: 0;
+      margin-bottom: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      min-width: 0;
+      width: min(100%, 420px);
+      justify-self: center;
+    }
+
+    .temperature-control .section-title {
+      margin-bottom: 0;
+    }
+
+    .temperature-readout {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .temperature-value {
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: var(--tile-radius);
+      background: rgba(255,255,255,.045);
+      min-height: var(--tile-height);
+      height: var(--tile-height);
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      text-align: center;
+    }
+
+    .temperature-value .label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .temperature-value strong {
+      display: block;
+      font-size: 21px;
+      line-height: 1;
+    }
+
+    .temp-slider {
+      display: grid;
+      gap: 5px;
+    }
+
+    .temp-slider input[type="range"] {
+      width: 100%;
+      min-height: 28px;
+      padding: 0;
+      border: 0;
+      border-radius: 999px;
+      background: linear-gradient(
+        90deg,
+        var(--accent-2) 0%,
+        var(--accent) var(--temp-progress, 71%),
+        rgba(255,255,255,.12) var(--temp-progress, 71%),
+        rgba(255,255,255,.12) 100%
+      );
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    .temp-slider input[type="range"]::-webkit-slider-runnable-track {
+      height: 8px;
+      border-radius: 999px;
+      background: transparent;
+    }
+
+    .temp-slider input[type="range"]::-moz-range-track {
+      height: 8px;
+      border-radius: 999px;
+      background: transparent;
+    }
+
+    .temp-slider input[type="range"]::-webkit-slider-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      border: 3px solid #e5edf8;
+      background: var(--accent);
+      box-shadow: 0 4px 12px rgba(0,0,0,.28);
+      -webkit-appearance: none;
+      margin-top: -6px;
+    }
+
+    .temp-slider input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      border: 3px solid #e5edf8;
+      background: var(--accent);
+      box-shadow: 0 4px 12px rgba(0,0,0,.28);
+    }
+
+    .temp-slider input[type="range"]:focus-visible {
+      outline: 2px solid rgba(80,183,255,.55);
+      outline-offset: 3px;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .command-log {
+      margin-top: 0;
+      overflow: visible;
+    }
+
+    .upcoming-task {
+      display: flex;
+      align-items: center;
+      min-height: 38px;
+      margin-bottom: 11px;
+      padding: 9px 11px;
+      border: 1px solid rgba(80,183,255,.22);
+      border-radius: 8px;
+      background: rgba(80,183,255,.08);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .upcoming-task span {
+      margin-right: 4px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .event {
+      display: grid;
+      grid-template-columns: 108px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .event time {
+      color: var(--muted);
+      font-size: 14px;
+      padding-top: 1px;
+    }
+
+    .event div {
+      border-left: 2px solid rgba(80,183,255,.55);
+      padding-left: 10px;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .event small {
+      display: -webkit-box;
+      color: var(--muted);
+      margin-top: 3px;
+      font-size: 12px;
+      line-height: 1.25;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+    }
+
+    .decision-card .card-inner {
+      padding: 10px;
+    }
+
+    .decision-card .section-title {
+      margin-bottom: 14px;
+    }
+
+    .decision-card br {
+      display: none;
+    }
+
+    .control-card br {
+      display: none;
+    }
+
+    .controls-panel .card-inner {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .control-section {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 8px;
+      align-items: stretch;
+      padding: 10px;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--tile-radius);
+      background: rgba(15,23,42,.34);
+      align-content: stretch;
+    }
+
+    .controls-panel .section-title {
+      grid-column: 1 / -1;
+      margin-bottom: 2px;
+    }
+
+    .control-section + .control-section {
+      border-top-color: var(--line);
+    }
+
+    .control-section-header {
+      min-width: 0;
+      text-align: center;
+    }
+
+    .control-section-header h3 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.2;
+    }
+
+    .control-section-body {
+      min-width: 0;
+      display: grid;
+      justify-items: center;
+      align-items: center;
+      align-content: center;
+    }
+
+    .weather-layout,
+    .heater-layout {
+      display: grid;
+    }
+
+    #heater-control-card .control-section-body {
+      display: grid;
+      align-items: center;
+      justify-content: center;
+      align-content: center;
+      justify-items: center;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .heater-mode-stack {
+      width: 100%;
+      display: grid;
+      justify-items: center;
+      align-content: center;
+      gap: 8px;
+    }
+
+    #heater-control-card .mode-grid {
+      flex: 0 0 auto;
+      align-self: center;
+      grid-template-columns: repeat(3, minmax(var(--button-width), var(--button-width)));
+      width: 100%;
+      align-content: center;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .heater-start-mode {
+      width: min(100%, calc((var(--button-width) * 3) + 16px));
+      display: grid;
+      gap: 5px;
+      justify-items: stretch;
+    }
+
+    .heater-start-mode label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 760;
+      line-height: 1.15;
+      text-align: center;
+    }
+
+    .heater-start-mode select {
+      width: 100%;
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(255,255,255,.045);
+      color: var(--text);
+      color-scheme: dark;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 760;
+      text-align: center;
+      text-align-last: center;
+      cursor: pointer;
+    }
+
+    .heater-start-mode select:focus-visible {
+      outline: 2px solid rgba(80,183,255,.55);
+      outline-offset: 3px;
+    }
+
+    .control-card {
+      position: relative;
+      transition: opacity .2s ease, filter .2s ease;
+    }
+
+    .control-card.disabled {
+      opacity: .42;
+      filter: grayscale(.75);
+    }
+
+    .control-card.disabled .mode,
+    .control-card.disabled .temperature-control,
+    .control-card.disabled .heater-start-mode {
+      pointer-events: none;
+    }
+
+    .disabled-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      background: rgba(15,23,42,.38);
+      backdrop-filter: blur(2px);
+    }
+
+    .control-card.disabled .disabled-overlay {
+      display: flex;
+    }
+
+    .disabled-overlay span {
+      background: rgba(15,23,42,.82);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 11px 15px;
+      color: var(--text);
+      box-shadow: 0 12px 35px rgba(0,0,0,.25);
+    }
+
+    /* Job display shown only while a safety sequence, such as pump run-on, is active. */
+    .sequence {
+      margin-top: 6px;
+      display: none;
+      gap: 6px;
+    }
+
+    .sequence.visible {
+      display: grid;
+    }
+
+    .sequence-step {
+      display: grid;
+      grid-template-columns: 24px 1fr auto;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 7px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255,255,255,.045);
+      min-width: 0;
+    }
+
+    .sequence-step .bubble {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,.10);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 750;
+    }
+
+    .sequence-step.active {
+      border-color: rgba(246,200,95,.55);
+      background: rgba(246,200,95,.12);
+      animation: softPulse 1.4s ease-in-out infinite;
+    }
+
+    .sequence-step.done {
+      border-color: rgba(74,222,128,.45);
+      background: rgba(74,222,128,.10);
+    }
+
+    .sequence-step.active .bubble {
+      background: var(--warn);
+      color: #1f2937;
+    }
+
+    .sequence-step.done .bubble {
+      background: var(--ok);
+      color: #102014;
+    }
+
+    .sequence-step small {
+      color: var(--muted);
+      display: block;
+      margin-top: 1px;
+      font-size: 10px;
+      line-height: 1.15;
+    }
+
+    .sequence-step strong {
+      font-size: 11px;
+    }
+
+    .sequence-step .state {
+      color: var(--muted);
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    .sensor-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+    }
+
+    .sensor {
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(15,23,42,.34);
+      min-width: 0;
+      min-height: 72px;
+      display: grid;
+      align-content: space-between;
+    }
+
+    .sensor .label {
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 720;
+      line-height: 1.2;
+    }
+
+    .sensor .entity {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+
+    .sensor strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 18px;
+      line-height: 1.1;
+    }
+
+    .sensor-categories {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .sensor-category {
+      min-width: 0;
+      min-height: 0;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(15,23,42,.34);
+      padding: 8px;
+      display: grid;
+      gap: 6px;
+      align-content: start;
+    }
+
+    .sensor-category.energy {
+      border-color: rgba(55,212,166,.25);
+      grid-column: 1 / -1;
+    }
+
+    .sensor-category.pump {
+      border-color: rgba(80,183,255,.25);
+    }
+
+    .sensor-category.heater {
+      border-color: rgba(246,200,95,.25);
+    }
+
+    .sensor-category-title {
+      font-size: 13px;
+      font-weight: 780;
+      color: var(--text);
+    }
+
+    .sensor-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .sensor-list > div {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      min-width: 0;
+      padding: 5px 0;
+      border-top: 1px solid rgba(255,255,255,.07);
+    }
+
+    .sensor-list > div:first-child {
+      border-top: 0;
+    }
+
+    .sensor-list span {
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .sensor-list strong {
+      color: var(--text);
+      font-size: 13px;
+      white-space: nowrap;
+      text-align: right;
+    }
+
+    @keyframes softPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(246,200,95,.00); }
+      50% { box-shadow: 0 0 0 6px rgba(246,200,95,.08); }
+    }
+
+    @keyframes connectedPulse {
+      0%, 100% { box-shadow: 0 0 0 4px rgba(74,222,128,.10); }
+      50% { box-shadow: 0 0 0 7px rgba(74,222,128,.22); }
+    }
+
+    @media (hover: none) {
+      .mode:hover {
+        transform: none;
+      }
+    }
+
+    @media (min-width: 1180px) {
+      .decision-card .section-title,
+      .sensor-list-card .section-title {
+        margin-bottom: 8px;
+      }
+
+      .upcoming-task {
+        min-height: 36px;
+        margin-bottom: 10px;
+        padding: 8px 10px;
+        font-size: 14px;
+      }
+
+      .timeline {
+        gap: 7px;
+        margin-top: 10px;
+      }
+
+      .event {
+        grid-template-columns: 104px 1fr;
+        gap: 10px;
+      }
+
+      .event time,
+      .event div {
+        font-size: 14px;
+      }
+
+      .event small {
+        font-size: 11.5px;
+        -webkit-line-clamp: 1;
+        line-clamp: 1;
+      }
+
+      .sensor-categories {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .sensor-category {
+        padding: 7px;
+        gap: 4px;
+      }
+
+      .sensor-category.energy {
+        grid-column: auto;
+      }
+
+      .sensor-list {
+        gap: 0;
+      }
+
+      .sensor-list > div {
+        padding: 3px 0;
+      }
+
+      .sensor-list span,
+      .sensor-list strong {
+        font-size: 12px;
+      }
+    }
+
+    @media (min-width: 1440px) and (hover: hover) and (pointer: fine) {
+      :root {
+        --page-gap: clamp(18px, 1.9vw, 36px);
+        --card-pad: clamp(12px, .9vw, 18px);
+        --tile-height: clamp(72px, 4.4vw, 88px);
+        --button-width: clamp(154px, 9.4vw, 178px);
+        --button-height: clamp(72px, 4.4vw, 86px);
+        --radius: 16px;
+        --tile-radius: 13px;
+      }
+
+      .app {
+        width: min(1920px, calc(100% - (var(--page-gap) * 2)));
+        padding-top: clamp(14px, 1.2vw, 24px);
+        padding-bottom: clamp(18px, 1.4vw, 30px);
+      }
+
+      header {
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      .brand {
+        gap: 12px;
+        min-height: 48px;
+      }
+
+      .logo {
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
+      }
+
+      .logo img {
+        width: 34px;
+        height: 34px;
+      }
+
+      .brand-title {
+        height: 46px;
+      }
+
+      .brand h1 {
+        font-size: 23px;
+      }
+
+      .brand-tagline {
+        font-size: 12px;
+      }
+
+      .pill {
+        height: 46px;
+        min-width: 210px;
+        padding: 8px 14px;
+        font-size: 13px;
+      }
+
+      header > .pill {
+        min-width: 260px;
+      }
+
+      .grid {
+        gap: clamp(12px, .9vw, 18px);
+      }
+
+      .dashboard .decision-card {
+        min-height: clamp(420px, 43vh, 540px);
+      }
+
+      .section-title {
+        margin-bottom: 12px;
+      }
+
+      .section-title h3,
+      .control-section-header h3 {
+        font-size: 19px;
+      }
+
+      .metrics,
+      .mode-grid,
+      .controls-panel .card-inner,
+      .sensor-categories {
+        gap: clamp(10px, .75vw, 14px);
+      }
+
+      .metric {
+        padding: 12px;
+      }
+
+      .metric .label,
+      .temperature-value .label {
+        font-size: 13px;
+      }
+
+      .metric .value,
+      .master .value {
+        font-size: 22px;
+      }
+
+      .control-section {
+        padding: 12px;
+        gap: 10px;
+      }
+
+      .mode {
+        padding: 10px;
+      }
+
+      .mode .icon {
+        font-size: 20px;
+        margin-bottom: 4px;
+      }
+
+      .mode strong {
+        font-size: 13px;
+      }
+
+      .heater-mode-stack {
+        gap: 10px;
+      }
+
+      .heater-start-mode {
+        width: min(100%, calc((var(--button-width) * 3) + 28px));
+      }
+
+      .heater-start-mode label {
+        font-size: 12px;
+      }
+
+      .heater-start-mode select {
+        height: 40px;
+        font-size: 14px;
+      }
+
+      .temperature-control {
+        width: min(100%, 520px);
+        gap: 9px;
+      }
+
+      .temperature-readout {
+        gap: 10px;
+      }
+
+      .temperature-value strong {
+        font-size: 25px;
+      }
+
+      .temp-slider input[type="range"] {
+        min-height: 32px;
+      }
+
+      .upcoming-task {
+        min-height: 42px;
+        padding: 10px 12px;
+        font-size: 15px;
+      }
+
+      .timeline {
+        gap: 9px;
+        margin-top: 12px;
+      }
+
+      .event {
+        grid-template-columns: 116px 1fr;
+        gap: 12px;
+      }
+
+      .event time,
+      .event div {
+        font-size: 15px;
+      }
+
+      .event small {
+        font-size: 12px;
+      }
+
+      .sensor-category {
+        padding: 10px;
+        gap: 6px;
+      }
+
+      .sensor-category-title {
+        font-size: 14px;
+      }
+
+      .sensor-list {
+        gap: 2px;
+      }
+
+      .sensor-list > div {
+        padding: 4px 0;
+      }
+
+      .sensor-list span,
+      .sensor-list strong {
+        font-size: 13px;
+      }
+    }
+
+    @media (hover: none), (pointer: coarse), (max-width: 1024px) {
+      [data-tooltip]::before,
+      [data-tooltip]::after {
+        display: none;
+        content: none;
+      }
+    }
+
+    @media (max-width: 980px) {
+      :root {
+        --page-gap: 10px;
+        --card-pad: 11px;
+      }
+
+      .heater-layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      header {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+      }
+      header > .pill {
+        width: auto;
+        min-width: 0;
+      }
+      .hero h2 { font-size: 16px; }
+    }
+
+    @media (max-width: 760px) {
+      .grid { grid-template-columns: minmax(0, 1fr); }
+      .dashboard .hero,
+      .dashboard .decision-card,
+      .dashboard .controls-panel,
+      .dashboard .sensor-list-card {
+        grid-column: auto;
+      }
+      .dashboard .decision-card {
+        min-height: 0;
+      }
+      .controls-panel .card-inner {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    @media (max-width: 620px) {
+      :root {
+        --page-gap: 8px;
+        --card-pad: 12px;
+        --radius: 14px;
+      }
+
+      .app { padding-top: 10px; padding-bottom: 20px; }
+      header {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+      .brand { gap: 10px; }
+      .brand,
+      header > .pill {
+        justify-self: stretch;
+      }
+      header > .pill {
+        width: 100%;
+      }
+      .logo {
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+        font-size: 20px;
+      }
+      .brand-title { height: 36px; }
+      .brand h1 { font-size: 18px; }
+      .brand-tagline { font-size: 9px; }
+      .pill {
+        justify-content: center;
+        font-size: 13px;
+      }
+      .master {
+        grid-column: auto;
+      }
+      .master { width: 100%; }
+      .hero { min-height: 0; }
+      .hero h2 { font-size: 16px; }
+      .hero .sub { font-size: 13px; }
+      .metrics,
+      .mode-grid,
+      .mode-grid.pump-modes,
+      .sensor-categories {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .mode-grid,
+      .mode-grid.pump-modes,
+      .weather-mode-grid,
+      #heater-control-card .mode-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .heater-start-mode {
+        width: 100%;
+      }
+      .section-title {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .mode { padding: 8px; }
+      .mode {
+        width: 100%;
+      }
+      .upcoming-task {
+        font-size: 13px;
+        min-height: 34px;
+        padding: 8px 9px;
+      }
+      .event {
+        grid-template-columns: 84px 1fr;
+        gap: 8px;
+      }
+      .event time,
+      .event div {
+        font-size: 13px;
+      }
+      .event div {
+        padding-left: 7px;
+      }
+      .event small {
+        font-size: 11px;
+      }
+      .sequence-step {
+        grid-template-columns: 28px 1fr;
+      }
+      .sequence-step .state {
+        grid-column: 2;
+        white-space: normal;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .event { grid-template-columns: 52px 1fr; }
+      .metric { padding: 14px; }
+      .metric .value { font-size: 22px; }
+      .mode .icon { margin-bottom: 3px; }
+      .mode-grid,
+      .mode-grid.pump-modes,
+      .weather-mode-grid,
+      #heater-control-card .mode-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="brand">
+        <div class="logo"><img src="icons/openpool-icon.svg" alt="" /></div>
+        <div class="brand-title">
+          <h1>OpenPool</h1>
+          <p class="brand-tagline">OpenSource Pool System Controller</p>
+        </div>
+      </div>
+      <div id="ha-status-pill" class="pill disconnected"><span class="dot"></span> Home Assistant wird verbunden</div>
+    </header>
+
+    <!-- Dashboard: daily operating view for the Home Assistant panel. -->
+    <section id="dashboard" class="dashboard">
+      <div class="grid">
+        <section class="card hero">
+          <div class="card-inner">
+            <div class="section-title">
+              <h3>Allgemein</h3>
+            </div>
+            <div class="metrics">
+              <div class="metric master">
+                <div class="label">Hauptfreigabe</div>
+                <div class="master-control">
+                  <div class="switch on" onclick="toggleSwitch(this)" role="button" aria-label="Hauptfreigabe umschalten"><div class="knob"></div></div>
+                  <div class="value" id="master-state-label">EIN</div>
+                </div>
+                <div class="hint">Zentrale Freigabe für OpenPool.</div>
+              </div>
+              <div class="metric">
+                <div class="label">Pumpe</div>
+                <div class="value" id="pump-status">--</div>
+                <div class="hint" id="pump-hint">warte auf Home Assistant</div>
+              </div>
+              <div class="metric">
+                <div class="label">Chlorinator</div>
+                <div class="value" id="chlor-status">--</div>
+                <div class="hint" id="chlor-hint">warte auf Home Assistant</div>
+              </div>
+              <div class="metric" id="heater-status-metric">
+                <div class="label">Heizung</div>
+                <div class="value" id="heater-status">--</div>
+                <div class="hint" id="heater-hint">warte auf Home Assistant</div>
+              </div>
+              <div class="metric" id="heat-source-status-metric">
+                <div class="label">Heizenergiequelle</div>
+                <div class="value" id="heat-source-metric">--</div>
+                <div class="hint" id="heat-source-hint">warte auf Steuerzustand</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card controls-panel">
+          <div class="card-inner">
+            <div class="section-title">
+              <h3>Steuerelemente</h3>
+            </div>
+            <div class="control-section control-card" id="pump-control-card">
+              <div class="disabled-overlay"><span>Hauptfreigabe AUS – Pumpenmodus gesperrt</span></div>
+              <div class="control-section-header">
+                <h3>Pumpenmodus</h3>
+              </div>
+              <div class="control-section-body">
+                <div class="mode-grid pump-modes">
+                  <div class="mode" data-pump-mode="Aus"><div class="icon">⏻</div><strong>Aus</strong><small>Nachlauf nur, wenn die Heizung kürzlich aktiv war.</small></div>
+                  <div class="mode" data-pump-mode="Dauerbetrieb"><div class="icon">🔁</div><strong>Dauerbetrieb</strong><small>Pumpe läuft dauerhaft, Restart alle 12 Stunden.</small></div>
+                  <div class="mode active" data-pump-mode="Badebetrieb"><div class="icon">🏊</div><strong>Badebetrieb</strong><small>07:30–22:00 mit Restart-Pulsen.</small></div>
+                  <div class="mode" data-pump-mode="Schlechtwetter"><div class="icon">🌧️</div><strong>Schlechtwetter</strong><small>Reduzierte Chlorung bei wenig UV/Badenden.</small></div>
+                  <div class="mode" data-pump-mode="Nachtbaden"><div class="icon">🌙</div><strong>Nachtbaden</strong><small id="night-swim-hint">Pumpe + Heizung EIN, Dauer aus Add-on-Option.</small></div>
+                  <div class="mode action-mode" data-action="restart"><div class="icon">↻</div><strong>Chlorsystem neu starten</strong><small>Kurzer Restart-Pulse für den Chlorinator.</small></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="control-section weather-card" id="weather-card">
+              <div class="control-section-header">
+                <h3>Wettersteuerung</h3>
+              </div>
+              <div class="control-section-body weather-layout">
+                <div class="mode-grid weather-mode-grid" id="weather-mode-control">
+                  <div class="mode active" data-weather-mode="Empfehlung"><div class="icon">☀️</div><strong>Deaktiviert</strong><small id="weather-disabled-hint">Wetter schaltet den Pumpenmodus nicht automatisch.</small></div>
+                  <div class="mode" data-weather-mode="Automatik"><div class="icon">↻</div><strong>Aktiviert</strong><small id="weather-auto-hint">Empfehlung wird geladen.</small></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="control-section control-card" id="heater-control-card">
+              <div class="disabled-overlay"><span>Hauptfreigabe AUS – Heizungsmodus gesperrt</span></div>
+              <div class="control-section-header">
+                <h3>Heizungsmodus</h3>
+              </div>
+              <div class="control-section-body heater-layout">
+                <div class="heater-mode-stack">
+                  <div class="mode-grid">
+                    <div class="mode" data-heater-mode="Aus"><div class="icon">⏻</div><strong>Aus</strong><small>Wärmepumpe bleibt aus.</small></div>
+                    <div class="mode" data-heater-mode="Ein"><div class="icon">🔥</div><strong>Ein</strong><small>Wärmepumpe erzwingen, aber nur mit Pumpenflow.</small></div>
+                    <div class="mode active" data-heater-mode="PV-Automatik"><div class="icon">☀️</div><strong>PV-Automatik</strong><small>Start/Stopp nach PV-Leistung und Stabilzeit.</small></div>
+                  </div>
+                  <div class="heater-start-mode">
+                    <label for="heater-start-mode-select">Betriebsmodus beim Start</label>
+                    <select id="heater-start-mode-select" aria-label="Betriebsmodus beim Start der Wärmepumpe">
+                      <option value="Auto" selected>Auto</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="control-section control-card temperature-card" id="heater-temperature-card">
+              <div class="disabled-overlay"><span>Hauptfreigabe AUS – Heizungstemperatur gesperrt</span></div>
+              <div class="control-section-header">
+                <h3>Heizungstemperatur</h3>
+              </div>
+              <div class="control-section-body">
+                <div class="temperature-control">
+                  <div class="temperature-readout">
+                    <div class="temperature-value">
+                      <div class="label">Ist</div>
+                      <strong id="heater-current-temp">--</strong>
+                    </div>
+                    <div class="temperature-value">
+                      <div class="label">Ziel</div>
+                      <strong id="heater-target-temp">28,0°</strong>
+                    </div>
+                  </div>
+                  <div class="temp-slider">
+                    <input id="heater-target-slider" type="range" min="18" max="32" step="0.5" value="28" oninput="setTargetTemp(this.value)" aria-label="Zieltemperatur Wärmepumpe" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card decision-card">
+          <div class="card-inner">
+            <div class="section-title">
+              <h3>Aufgabenverlauf</h3>
+            </div>
+            <div class="upcoming-task" id="upcoming-task"><span>Upcoming:</span> Live-Zustand wird geladen</div>
+            <div class="timeline command-log" id="command-log">
+              <div class="event"><time>--:--</time><div>Warte auf Home Assistant<small>Live-Zustand wird geladen.</small></div></div>
+            </div>
+            <div class="sequence" id="shutdown-sequence">
+              <div class="sequence-step done"><div class="bubble">1</div><div><strong>Heizung AUS</strong><small>Wärmepumpe bekommt Abschaltbefehl</small></div><div class="state">fertig</div></div>
+              <div class="sequence-step active"><div class="bubble">2</div><div><strong>Nachlauf 5 Minuten</strong><small>Pumpe bleibt für sicheren Flow aktiv</small></div><div class="state">läuft</div></div>
+              <div class="sequence-step"><div class="bubble">3</div><div><strong>Pumpe AUS</strong><small>Erst nach dem Heizungs-Nachlauf</small></div><div class="state">wartet</div></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card sensor-list-card">
+          <div class="card-inner">
+            <div class="section-title">
+              <h3>Sensoren</h3>
+            </div>
+            <div class="sensor-categories">
+              <div class="sensor-category pump">
+                <div class="sensor-category-title">Pumpe</div>
+                <div class="sensor-list">
+                  <div><span>Leistung</span><strong id="pump-power-value">--</strong></div>
+                  <div><span>Strom</span><strong id="pump-current-value">--</strong></div>
+                  <div><span>Spannung</span><strong id="pump-voltage-value">--</strong></div>
+                  <div><span>Signal</span><strong id="pump-signal-value">--</strong></div>
+                </div>
+              </div>
+              <div class="sensor-category heater" id="heater-sensor-category">
+                <div class="sensor-category-title">Heizung</div>
+                <div class="sensor-list">
+                  <div><span>Leistung</span><strong id="heater-power-value">--</strong></div>
+                  <div><span>Netzstrom</span><strong id="heater-current-value">--</strong></div>
+                  <div><span>Netzspannung</span><strong id="heater-voltage-value">--</strong></div>
+                  <div><span>Lüfter</span><strong id="heater-fan-value">--</strong></div>
+                  <div><span>Umgebungsluft</span><strong id="heater-ambient-value">--</strong></div>
+                  <div><span>Wasser Eingang</span><strong id="heater-water-in-value">--</strong></div>
+                  <div><span>Wasser Ausgang</span><strong id="heater-water-out-value">--</strong></div>
+                </div>
+              </div>
+              <div class="sensor-category energy">
+                <div class="sensor-category-title">Energie</div>
+                <div class="sensor-list">
+                  <div><span>PV Erzeugung</span><strong id="pv-generation-value">--</strong></div>
+                  <div><span>Netzeinspeisung</span><strong id="pv-export-value">--</strong></div>
+                  <div><span>Netzbezug</span><strong id="grid-import-value">--</strong></div>
+                  <div><span>Hausverbrauch</span><strong id="house-consumption-value">--</strong></div>
+                  <div><span>Verfügbar für WP</span><strong id="pv-free-list-value">--</strong></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Runtime state for the touch UI. Home Assistant values are fetched through
+    // the add-on proxy so the browser never needs to know a long-lived token.
+    const HA_POLL_INTERVAL_MS = 1000;
+    const LIVE_STREAM_STALE_MS = 2500;
+    const controlConfig = {
+      pvStartExportW: 1500,
+      pvStopExportW: 1500,
+      pvStartStableMinutes: 5,
+      pvStopStableMinutes: 1,
+      heaterTempMin: 18,
+      heaterTempMax: 32,
+      pumpPowerWithoutChlorinatorW: 450,
+      pumpPowerWithChlorinatorW: 500,
+      nightSwimMaxMinutes: 600,
+      heatPumpControl: true,
+      weatherControl: true
+    };
+    let shutdownActive = false;
+    let restartPulseActive = false;
+    let heaterTargetTemp = 28;
+    let refreshTimer = null;
+    let stateStream = null;
+    let lastSnapshotAt = 0;
+    let liveStateAvailable = false;
+    let latestSnapshot = null;
+
+    // Safety rule: pump run-on is only required while the heat pump is running
+    // or less than five minutes after it stopped.
+    const heaterRunOnMs = 5 * 60 * 1000;
+    const defaultContinuousRestartIntervalS = 12 * 60 * 60;
+    const defaultHeaterStartMode = 'Auto';
+    const fallbackHeaterStartModes = ['Heat', 'Cool', 'Auto', 'Boost Heat', 'Silent Heat'];
+    let heaterStartModes = [...fallbackHeaterStartModes];
+    const COMMAND_LOG_LIMIT = 6;
+    let heaterOffSince = Date.now() - heaterRunOnMs - 1000;
+    let lastCommandSignature = '';
+    const commandLog = [
+      { time: '--:--', title: 'Warte auf Home Assistant', detail: 'Live-Zustand wird geladen.' }
+    ];
+
+    function escapeHTML(value) {
+      return String(value).replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[char]));
+    }
+
+    function getCommandTime() {
+      return new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function localDateKey(date = new Date()) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function shortDateLabel(date) {
+      return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    function relativeDayLabel(date, reference = new Date(), capitalized = true) {
+      const today = localDateKey(reference);
+      const yesterdayDate = new Date(reference);
+      yesterdayDate.setDate(reference.getDate() - 1);
+      const tomorrowDate = new Date(reference);
+      tomorrowDate.setDate(reference.getDate() + 1);
+      const key = localDateKey(date);
+
+      if (key === today) return capitalized ? 'Heute' : 'heute';
+      if (key === localDateKey(yesterdayDate)) return capitalized ? 'Gestern' : 'gestern';
+      if (key === localDateKey(tomorrowDate)) return capitalized ? 'Morgen' : 'morgen';
+      return shortDateLabel(date);
+    }
+
+    function commandDate(command) {
+      if (command?.date && /^\d{4}-\d{2}-\d{2}$/.test(command.date)) {
+        return new Date(`${command.date}T12:00:00`);
+      }
+      const ts = Number(command?.ts);
+      return Number.isFinite(ts) ? new Date(ts * 1000) : null;
+    }
+
+    function formatCommandStamp(command) {
+      const date = commandDate(command);
+      const time = command?.time || (date ? date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '--:--');
+      return date ? `${relativeDayLabel(date)} - ${time}` : time;
+    }
+
+    function renderCommandLog() {
+      const log = document.getElementById('command-log');
+      if (!log) return;
+      log.innerHTML = commandLog.slice(0, COMMAND_LOG_LIMIT).map(command => `
+        <div class="event">
+          <time>${escapeHTML(formatCommandStamp(command))}</time>
+          <div>${escapeHTML(command.title)}<small>${escapeHTML(command.detail)}</small></div>
+        </div>
+      `).join('');
+    }
+
+    function snapshotNowSeconds(snapshot) {
+      const snapshotTime = Number(snapshot?.now);
+      return Number.isFinite(snapshotTime) ? snapshotTime : Date.now() / 1000;
+    }
+
+    function formatUpcomingCountdown(atSeconds, snapshot) {
+      const at = Number(atSeconds);
+      if (!Number.isFinite(at)) return '';
+
+      const remaining = Math.max(0, Math.ceil(at - snapshotNowSeconds(snapshot)));
+      if (remaining < 60) return `in ${remaining}s`;
+
+      const minutes = Math.floor(remaining / 60);
+      const seconds = remaining % 60;
+      if (minutes < 60) return `in ${minutes}:${String(seconds).padStart(2, '0')} min`;
+
+      return `um ${new Date(at * 1000).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+
+    function formatTaskDateTime(atSeconds, snapshot) {
+      const at = Number(atSeconds);
+      if (!Number.isFinite(at)) return '';
+
+      const date = new Date(at * 1000);
+      const reference = new Date(snapshotNowSeconds(snapshot) * 1000);
+      const label = relativeDayLabel(date, reference, false);
+      const prefix = /^\d{2}\.\d{2}$/.test(label) ? `am ${label}` : label;
+      return `${prefix} um ${date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`;
+    }
+
+    function formatUpcomingLabel(task, snapshot) {
+      const scheduled = formatTaskDateTime(task.at, snapshot);
+      const countdown = task.countdown ? ` (${formatUpcomingCountdown(task.at, snapshot)})` : '';
+      return `${task.title} ${scheduled}${countdown}`;
+    }
+
+    function clockToToday(clock, nowDate) {
+      const match = String(clock || '').match(/^(\d{1,2}):(\d{2})$/);
+      if (!match) return null;
+
+      const date = new Date(nowDate);
+      date.setHours(Number(match[1]), Number(match[2]), 0, 0);
+      return date;
+    }
+
+    function dayKey(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function pulseLabel(pulse) {
+      const match = String(pulse?.key || '').match(/pulse_(\d+)/);
+      return match ? `Pulse ${match[1]}` : 'Pulse';
+    }
+
+    function profileWindowForMode(snapshot, pumpMode) {
+      const profiles = snapshot?.profiles || {};
+      if (pumpMode === 'Badebetrieb') {
+        return { start: profiles.pump_start || '07:30', end: profiles.pump_end || '22:00' };
+      }
+      if (pumpMode === 'Schlechtwetter') {
+        return { start: profiles.bad_weather_start || '13:00', end: profiles.bad_weather_end || '16:15' };
+      }
+      return null;
+    }
+
+    function pumpRunsAtTaskTime(snapshot, pumpMode, taskDate) {
+      if (pumpMode === 'Dauerbetrieb' || pumpMode === 'Nachtbaden') return true;
+
+      const window = profileWindowForMode(snapshot, pumpMode);
+      if (!window) return false;
+
+      const start = clockToToday(window.start, taskDate);
+      const end = clockToToday(window.end, taskDate);
+      return Boolean(start && end && start <= taskDate && taskDate < end);
+    }
+
+    function heatPumpIsActiveForTask(snapshot) {
+      return isHeatPumpRunning(snapshot?.ha_states || {});
+    }
+
+    function pumpStopTaskWithHeatProtection(title, at, preStopTitle, snapshot, nowDate) {
+      const preStopAt = at - heaterRunOnMs / 1000;
+      if (heatPumpIsActiveForTask(snapshot) && preStopAt > nowDate.getTime() / 1000) {
+        return { title: preStopTitle, at: preStopAt };
+      }
+      return { title, at };
+    }
+
+    function nextScheduledPumpTask(snapshot, controller, nowDate) {
+      if (controller.master_enabled === false) return null;
+
+      const pumpMode = controller.pump_mode || 'Aus';
+      if (pumpMode === 'Aus' || pumpMode === 'Dauerbetrieb') return null;
+
+      if (pumpMode === 'Nachtbaden') {
+        const maxMinutes = nightSwimDurationMinutes(snapshot?.profiles, 600);
+        const startedAt = Number(controller.pump_mode_started_at);
+        if (!Number.isFinite(startedAt)) return null;
+
+        const at = startedAt + Math.max(1, maxMinutes) * 60;
+        return at * 1000 > nowDate.getTime()
+          ? pumpStopTaskWithHeatProtection('Nachtbaden beenden', at, 'Heizung vor Nachtbaden-Ende ausschalten', snapshot, nowDate)
+          : null;
+      }
+
+      const window = profileWindowForMode(snapshot, pumpMode);
+      if (!window) return null;
+
+      const start = clockToToday(window.start, nowDate);
+      const end = clockToToday(window.end, nowDate);
+      if (!start || !end) return null;
+
+      if (nowDate < start) return { title: 'Pumpenstart', at: start.getTime() / 1000 };
+      if (nowDate < end) {
+        return pumpStopTaskWithHeatProtection('Pumpenende', end.getTime() / 1000, 'Heizung vor Pumpenende ausschalten', snapshot, nowDate);
+      }
+
+      const tomorrowStart = new Date(start);
+      tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+      return { title: 'Pumpenstart', at: tomorrowStart.getTime() / 1000 };
+    }
+
+    function nextContinuousRestartTask(snapshot, controller) {
+      const baseline = Number(
+        controller.continuous_restart_last_at
+        || controller.pump_mode_started_at
+        || snapshot?.runtime?.pump_running_since
+      );
+      if (!Number.isFinite(baseline)) return null;
+
+      const interval = optionNumber(
+        snapshot?.continuous_restart_interval_s,
+        defaultContinuousRestartIntervalS
+      );
+      const now = snapshotNowSeconds(snapshot);
+      const at = baseline + Math.max(60, interval);
+
+      return {
+        title: at <= now ? '12h-Restart startet' : '12h-Restart',
+        at: at <= now ? now : at
+      };
+    }
+
+    function nextRestartPulseTask(snapshot, controller, nowDate) {
+      const pumpMode = controller.pump_mode || 'Aus';
+      if (controller.master_enabled === false || pumpMode === 'Aus') return null;
+      if (pumpMode === 'Dauerbetrieb') return nextContinuousRestartTask(snapshot, controller);
+
+      const pulses = Array.isArray(snapshot?.restart_pulses) ? snapshot.restart_pulses : [];
+      const done = controller.restart_pulses_done || {};
+      const tomorrow = new Date(nowDate);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      return [nowDate, tomorrow]
+        .flatMap(day => pulses
+          .filter(pulse => pulse?.enabled)
+          .map(pulse => ({ pulse, date: clockToToday(pulse.time, day) })))
+        .filter(task => task.date && task.date >= nowDate)
+        .filter(task => !done[`${dayKey(task.date)}:${task.pulse.key}`])
+        .filter(task => pumpRunsAtTaskTime(snapshot, pumpMode, task.date))
+        .sort((left, right) => left.date - right.date)
+        .map(task => ({
+          title: `${pulseLabel(task.pulse)} ausführen`,
+          at: task.date.getTime() / 1000
+        }))[0] || null;
+    }
+
+    function pendingJobTask(job) {
+      if (!job) return null;
+      if (job.type === 'pump_run_on') return { title: 'Pumpe nach Nachlauf ausschalten', at: job.until };
+      if (job.type === 'restart_pulse_run_on') return { title: 'Restart-Pulse starten', at: snapshotNowSeconds(latestSnapshot) };
+      if (job.type === 'restart_pulse') return { title: 'Restart-Pulse beenden', at: job.until };
+      return { title: 'Aktiven Task abschließen', at: job.until };
+    }
+
+    function nextPvReleaseTask(snapshot, controller) {
+      if (!controlConfig.heatPumpControl) return null;
+      if (controller.master_enabled === false || (controller.pump_mode || 'Aus') === 'Aus') return null;
+      if ((controller.heater_mode || 'Aus') !== 'PV-Automatik') return null;
+
+      const states = snapshot?.ha_states || {};
+      if (isHeatPumpRunning(states)) return null;
+
+      const aboveSince = Number(controller.pv_above_since);
+      if (!Number.isFinite(aboveSince)) return null;
+
+      const available = Number(controller.pv_last_available_w);
+      const startThreshold = optionNumber(
+        snapshot?.thresholds?.pv_start_export_w,
+        controlConfig.pvStartExportW
+      );
+      if (!Number.isFinite(available) || available < startThreshold) return null;
+
+      const stableMinutes = optionNumber(
+        snapshot?.thresholds?.pv_start_stable_minutes,
+        controlConfig.pvStartStableMinutes
+      );
+      const at = aboveSince + Math.max(0, stableMinutes) * 60;
+      const now = snapshotNowSeconds(snapshot);
+      if (at <= now) return null;
+
+      return { title: 'Wärmepumpe startet', at, countdown: true };
+    }
+
+    function updateUpcomingTask(snapshot) {
+      const node = document.getElementById('upcoming-task');
+      if (!node) return;
+
+      const controller = snapshot?.controller || {};
+      const nowDate = new Date(snapshotNowSeconds(snapshot) * 1000);
+      const candidates = [
+        pendingJobTask(controller.pending_job),
+        nextPvReleaseTask(snapshot, controller),
+        nextRestartPulseTask(snapshot, controller, nowDate),
+        nextScheduledPumpTask(snapshot, controller, nowDate)
+      ].filter(Boolean).sort((left, right) => Number(left.at || Infinity) - Number(right.at || Infinity));
+
+      const task = candidates[0];
+      const label = task ? formatUpcomingLabel(task, snapshot) : 'Keine Aufgabe geplant';
+      node.innerHTML = `<span>Upcoming:</span> ${escapeHTML(label)}`;
+    }
+
+    function pushCommand(title, detail) {
+      // Keep only the latest meaningful commands and avoid writing the same
+      // state on every UI refresh.
+      const signature = `${title}|${detail}`;
+      if (signature === lastCommandSignature) return;
+      lastCommandSignature = signature;
+      commandLog.unshift({ time: getCommandTime(), date: localDateKey(), ts: Date.now() / 1000, title, detail });
+      commandLog.splice(COMMAND_LOG_LIMIT);
+      renderCommandLog();
+    }
+
+    function tooltipTileForNode(node) {
+      return node?.closest('.master, .metric, .mode, .temperature-value');
+    }
+
+    function syncTileTooltip(tile) {
+      if (!tile) return;
+      const parts = [
+        ...tile.querySelectorAll('.sub, .hint, small')
+      ]
+        .map(part => part.textContent.trim())
+        .filter(Boolean);
+
+      if (parts.length) {
+        tile.dataset.tooltip = parts.join(' · ');
+      } else {
+        delete tile.dataset.tooltip;
+      }
+    }
+
+    function syncTooltipForNode(node) {
+      syncTileTooltip(tooltipTileForNode(node));
+    }
+
+    function syncTileTooltips(scope = document) {
+      const tiles = new Set();
+      scope.querySelectorAll('.metric .hint, .mode small')
+        .forEach(node => {
+          const tile = tooltipTileForNode(node);
+          if (tile) tiles.add(tile);
+        });
+      tiles.forEach(syncTileTooltip);
+    }
+
+    function applyStatusTone(node, id, value) {
+      if (!['pump-status', 'chlor-status', 'heater-status', 'master-state-label'].includes(id)) return;
+      const normalized = String(value).toUpperCase();
+      node.classList.remove('status-on', 'status-off');
+      if (normalized.includes('EIN')) {
+        node.classList.add('status-on');
+      } else if (normalized.includes('AUS')) {
+        node.classList.add('status-off');
+      }
+    }
+
+    function setText(id, value) {
+      const node = document.getElementById(id);
+      if (!node) return;
+      node.textContent = value;
+      applyStatusTone(node, id, value);
+      syncTooltipForNode(node);
+    }
+
+    function setConnectionStatus(connected, text) {
+      const pill = document.getElementById('ha-status-pill');
+      if (!pill) return;
+      pill.classList.toggle('connected', connected);
+      pill.classList.toggle('disconnected', !connected);
+      pill.innerHTML = `<span class="dot"></span>${escapeHTML(text)}`;
+    }
+
+    function getAddonBaseUrl() {
+      // Home Assistant Ingress mounts add-ons below /api/hassio_ingress/<token>/.
+      // Absolute /api/... requests would bypass the add-on, so API calls are
+      // resolved against the current ingress mount when that path is present.
+      const ingressMatch = window.location.pathname.match(/^(.*\/api\/hassio_ingress\/[^/]+)(?:\/.*)?$/);
+      if (ingressMatch) return `${window.location.origin}${ingressMatch[1]}/`;
+      return new URL('.', window.location.href).href;
+    }
+
+    function addonApiUrl(path) {
+      return new URL(path.replace(/^\/+/, ''), getAddonBaseUrl()).toString();
+    }
+
+    async function apiJson(path, options = {}) {
+      const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+      const response = await fetch(addonApiUrl(path), { ...options, headers, cache: 'no-store' });
+      const contentType = response.headers.get('content-type') || '';
+      const text = await response.text();
+      const payload = contentType.includes('application/json') && text
+        ? JSON.parse(text)
+        : text;
+
+      if (!response.ok) {
+        const message = typeof payload === 'string' ? payload : (payload.error || response.statusText);
+        throw new Error(message || `HTTP ${response.status}`);
+      }
+
+      return payload;
+    }
+
+    function applyAddonOptions(snapshot) {
+      const options = snapshot?.options || {};
+      const features = snapshot?.features || options?.features || {};
+      const thresholds = snapshot?.thresholds || options?.thresholds || {};
+      const profiles = snapshot?.profiles || options?.profiles || {};
+      controlConfig.heatPumpControl = features.heat_pump_control !== false;
+      controlConfig.weatherControl = features.weather_control !== false;
+      controlConfig.pvStartExportW = optionNumber(thresholds.pv_start_export_w, controlConfig.pvStartExportW);
+      controlConfig.pvStopExportW = optionNumber(thresholds.pv_stop_export_w, controlConfig.pvStopExportW);
+      controlConfig.pvStartStableMinutes = optionNumber(thresholds.pv_start_stable_minutes, controlConfig.pvStartStableMinutes);
+      controlConfig.pvStopStableMinutes = optionNumber(thresholds.pv_stop_stable_minutes, controlConfig.pvStopStableMinutes);
+      controlConfig.heaterTempMin = optionNumber(thresholds.heater_temp_min, controlConfig.heaterTempMin);
+      controlConfig.heaterTempMax = optionNumber(thresholds.heater_temp_max, controlConfig.heaterTempMax);
+      controlConfig.pumpPowerWithoutChlorinatorW = optionNumber(thresholds.pump_power_without_chlorinator_w, controlConfig.pumpPowerWithoutChlorinatorW);
+      controlConfig.pumpPowerWithChlorinatorW = optionNumber(thresholds.pump_power_with_chlorinator_w, controlConfig.pumpPowerWithChlorinatorW);
+      controlConfig.nightSwimMaxMinutes = nightSwimDurationMinutes(profiles, controlConfig.nightSwimMaxMinutes);
+      applyFeatureVisibility();
+    }
+
+    function setFeatureVisible(id, visible) {
+      document.getElementById(id)?.classList.toggle('feature-hidden', !visible);
+    }
+
+    function applyFeatureVisibility() {
+      setFeatureVisible('weather-card', controlConfig.weatherControl);
+      setFeatureVisible('heater-control-card', controlConfig.heatPumpControl);
+      setFeatureVisible('heater-temperature-card', controlConfig.heatPumpControl);
+      setFeatureVisible('heater-status-metric', controlConfig.heatPumpControl);
+      setFeatureVisible('heat-source-status-metric', controlConfig.heatPumpControl);
+      setFeatureVisible('heater-sensor-category', controlConfig.heatPumpControl);
+      setText(
+        'night-swim-hint',
+        controlConfig.heatPumpControl
+          ? `Pumpe + Heizung EIN, PV egal, ${nightSwimLimitText()}.`
+          : `Pumpe läuft ${nightSwimLimitText()}.`
+      );
+    }
+
+    async function loadInitialState() {
+      try {
+        const snapshot = await apiJson('/api/openpool/state');
+        applyServerSnapshot(snapshot);
+      } catch {
+        // The UI can still boot with sane defaults until the live stream arrives.
+      }
+    }
+
+    async function sendOpenPoolAction(action) {
+      const snapshot = await apiJson('/api/openpool/action', {
+        method: 'POST',
+        body: JSON.stringify(action)
+      });
+      applyServerSnapshot(snapshot);
+      return snapshot;
+    }
+
+    function isUnavailableState(entityState) {
+      return !entityState || ['unknown', 'unavailable', 'none'].includes(String(entityState.state).toLowerCase());
+    }
+
+    function parseEntityNumber(entityState) {
+      if (isUnavailableState(entityState)) return null;
+      const normalized = String(entityState.state).replace(',', '.').replace(/[^\d.-]/g, '');
+      const value = Number(normalized);
+      return Number.isFinite(value) ? value : null;
+    }
+
+    function entityUnit(entityState, fallback = '') {
+      return entityState?.attributes?.unit_of_measurement || fallback;
+    }
+
+    function entityPowerWatts(entityState) {
+      const value = parseEntityNumber(entityState);
+      if (value === null) return null;
+      const unit = entityUnit(entityState).toLowerCase();
+      return unit.includes('kw') ? value * 1000 : value;
+    }
+
+    function formatDecimal(value, digits = 1) {
+      return Number(value).toLocaleString('de-DE', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      });
+    }
+
+    function formatPower(watts) {
+      if (watts === null || !Number.isFinite(watts)) return '--';
+      return Math.abs(watts) >= 1000
+        ? `${formatDecimal(watts / 1000, 2)} kW`
+        : `${Math.round(watts).toLocaleString('de-DE')} W`;
+    }
+
+    function formatSensorValue(entityState, fallbackUnit = '', digits = 1) {
+      if (isUnavailableState(entityState)) return '--';
+
+      const raw = String(entityState.state);
+      const lower = raw.toLowerCase();
+      if (lower === 'on') return 'EIN';
+      if (lower === 'off') return 'AUS';
+
+      const value = parseEntityNumber(entityState);
+      const unit = entityUnit(entityState, fallbackUnit);
+      if (value === null) return unit ? `${raw} ${unit}` : raw;
+
+      const formatted = digits === 0
+        ? Math.round(value).toLocaleString('de-DE')
+        : formatDecimal(value, digits);
+      return unit ? `${formatted} ${unit}` : formatted;
+    }
+
+    function updatePowerValue(valueId, entityState) {
+      const watts = entityPowerWatts(entityState);
+      setText(valueId, formatPower(watts));
+    }
+
+    function updateSensorValue(valueId, entityState, fallbackUnit, digits = 1) {
+      setText(valueId, formatSensorValue(entityState, fallbackUnit, digits));
+    }
+
+    function cleanHeaterStartModes(options) {
+      const values = Array.isArray(options) ? options : [];
+      const unique = [];
+      values.forEach(option => {
+        const mode = String(option || '').trim();
+        if (mode && !unique.some(existing => existing.toLowerCase() === mode.toLowerCase())) {
+          unique.push(mode);
+        }
+      });
+      return unique.length ? unique : [...fallbackHeaterStartModes];
+    }
+
+    function heaterStartModesFromSnapshot(snapshot) {
+      const liveOptions = snapshot?.ha_states?.['entity-heater-operation-mode']?.attributes?.options;
+      if (Array.isArray(liveOptions) && liveOptions.length) return cleanHeaterStartModes(liveOptions);
+      return cleanHeaterStartModes(snapshot?.heater_start_modes);
+    }
+
+    function normalizeHeaterStartMode(value, options = heaterStartModes) {
+      const requested = String(value || '').trim().toLowerCase();
+      const modes = cleanHeaterStartModes(options);
+      const selected = modes.find(mode => mode.toLowerCase() === requested);
+      if (selected) return selected;
+      return modes.find(mode => mode.toLowerCase() === defaultHeaterStartMode.toLowerCase()) || modes[0];
+    }
+
+    function setHeaterStartModeOptions(options, selectedValue) {
+      const select = document.getElementById('heater-start-mode-select');
+      if (!select) return;
+
+      heaterStartModes = cleanHeaterStartModes(options);
+      const selected = normalizeHeaterStartMode(selectedValue, heaterStartModes);
+      select.replaceChildren(...heaterStartModes.map(mode => {
+        const option = document.createElement('option');
+        option.value = mode;
+        option.textContent = mode;
+        option.selected = mode === selected;
+        return option;
+      }));
+    }
+
+    function chlorinatorStateFromPower(states) {
+      const pump = states['entity-pump-switch'];
+      const pumpPower = entityPowerWatts(states['entity-pump-power']);
+      const withoutThreshold = Math.max(0, optionNumber(controlConfig.pumpPowerWithoutChlorinatorW, 450));
+      const withThreshold = Math.max(withoutThreshold, optionNumber(controlConfig.pumpPowerWithChlorinatorW, 500));
+      const pumpOffTolerance = 50;
+
+      if (pumpPower === null) {
+        if (!isUnavailableState(pump) && String(pump.state).toLowerCase() !== 'on') {
+          return { value: 'AUS', hint: 'Pumpe ist aus.' };
+        }
+        return { value: '--', hint: 'Pumpenleistung fehlt.' };
+      }
+
+      if (pumpPower <= pumpOffTolerance) {
+        return { value: 'AUS', hint: 'Pumpe ist aus.' };
+      }
+
+      if (pumpPower >= withThreshold) {
+        return { value: 'EIN', hint: `Pumpe ${formatPower(pumpPower)} · Chlor ab ${formatPower(withThreshold)}.` };
+      }
+
+      const reference = formatPower(withoutThreshold);
+      return { value: 'AUS', hint: `Pumpe ${formatPower(pumpPower)} · Referenz ohne Chlor ${reference}.` };
+    }
+
+    function updateChlorinatorStatus(states) {
+      if (restartPulseActive) return;
+      const chlorinator = chlorinatorStateFromPower(states);
+      setText('chlor-status', chlorinator.value);
+      setText('chlor-hint', chlorinator.hint);
+    }
+
+    function formatDuration(seconds) {
+      const value = Math.max(0, Math.floor(Number(seconds) || 0));
+      const hours = Math.floor(value / 3600);
+      const minutes = Math.floor((value % 3600) / 60);
+      return `${hours}h ${String(minutes).padStart(2, '0')}m`;
+    }
+
+    function formatMinutesCompact(minutes) {
+      const value = Math.max(1, Math.round(Number(minutes) || 600));
+      const hours = Math.floor(value / 60);
+      const rest = value % 60;
+      if (hours && rest) return `${hours}h ${rest}m`;
+      if (hours) return `${hours}h`;
+      return `${value}min`;
+    }
+
+    function nightSwimDurationMinutes(profiles, fallback = 600) {
+      const hours = Number(profiles?.night_swim_duration_hours);
+      if (Number.isFinite(hours)) return Math.max(0.1, hours) * 60;
+
+      const minutes = Number(profiles?.night_swim_duration_minutes ?? profiles?.night_swim_max_minutes);
+      return Number.isFinite(minutes) ? minutes : fallback;
+    }
+
+    function nightSwimLimitText() {
+      return `max. ${formatMinutesCompact(controlConfig.nightSwimMaxMinutes)}`;
+    }
+
+    function formatStableMinutes(value, compact = false) {
+      const minutes = Math.max(0, Number(value) || 0);
+      if (minutes === 0) return 'sofort';
+      if (minutes < 1) return `${Math.round(minutes * 60)}s${compact ? '' : ' stabil'}`;
+      return `${formatDecimal(minutes, minutes % 1 === 0 ? 0 : 1)} min${compact ? '' : ' stabil'}`;
+    }
+
+    function optionNumber(value, fallback) {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function clampNumber(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function heatSourceFromLivePower(states) {
+      if (!controlConfig.heatPumpControl) {
+        return { value: 'KEINE', hint: 'Wärmepumpensteuerung deaktiviert.' };
+      }
+      if (!isHeatPumpRunning(states)) {
+        return { value: 'KEINE', hint: 'Wärmepumpe ist aus.' };
+      }
+
+      const pvGeneration = entityPowerWatts(states['entity-pv-generation']);
+      const pvExport = entityPowerWatts(states['entity-pv-export']);
+      const gridImport = entityPowerWatts(states['entity-grid-import']);
+      const heaterPower = entityPowerWatts(states['entity-heater-power']);
+      const heaterLoad = heaterPower === null ? null : Math.abs(heaterPower);
+      const tolerance = 50;
+
+      if ([pvGeneration, pvExport, gridImport, heaterLoad].some(value => value === null) || heaterLoad <= tolerance) {
+        if ((pvGeneration || 0) > tolerance && (gridImport || 0) > tolerance) {
+          return { value: 'PV/NETZ', hint: 'Wärmepumpe läuft, Leistungsanteile noch unklar.' };
+        }
+        if ((pvGeneration || 0) > tolerance && (gridImport || 0) <= tolerance) {
+          return { value: 'PV', hint: 'Wärmepumpe läuft ohne sichtbaren Netzbezug.' };
+        }
+        return { value: 'NETZ', hint: 'Wärmepumpe läuft, PV-Anteil nicht sichtbar.' };
+      }
+
+      const houseConsumption = pvGeneration - pvExport + gridImport;
+      const pvSelfConsumption = Math.max(0, pvGeneration - pvExport);
+      const nonHeaterConsumption = Math.max(0, houseConsumption - heaterLoad);
+      const pvForHeater = clampNumber(pvSelfConsumption - nonHeaterConsumption, 0, heaterLoad);
+      const gridForHeater = Math.max(0, heaterLoad - pvForHeater);
+
+      if (gridForHeater <= tolerance) {
+        return { value: 'PV', hint: `WP ${formatPower(heaterLoad)} vollständig aus PV.` };
+      }
+      if (pvForHeater <= tolerance) {
+        return { value: 'NETZ', hint: `WP ${formatPower(heaterLoad)} aus Netzbezug.` };
+      }
+      return { value: 'PV/NETZ', hint: `PV ${formatPower(pvForHeater)} · Netz ${formatPower(gridForHeater)}.` };
+    }
+
+    function updateHeatSourceMetric(states = latestSnapshot?.ha_states || {}) {
+      const source = heatSourceFromLivePower(states);
+      setText('heat-source-metric', source.value);
+      setText('heat-source-hint', source.hint);
+    }
+
+    function updatePvAvailability(states) {
+      const pvGeneration = entityPowerWatts(states['entity-pv-generation']);
+      const pvExport = entityPowerWatts(states['entity-pv-export']);
+      const gridImport = entityPowerWatts(states['entity-grid-import']);
+      const heaterPower = entityPowerWatts(states['entity-heater-power']);
+      const heaterActive = isHeatPumpRunning(states);
+
+      setText('pv-generation-value', formatPower(pvGeneration));
+      setText('pv-export-value', formatPower(pvExport));
+      setText('grid-import-value', formatPower(gridImport));
+      updateHeatSourceMetric(states);
+
+      if ([pvGeneration, pvExport, gridImport].some(value => value === null)) {
+        setText('house-consumption-value', '--');
+        setText('pv-free-list-value', '--');
+        return;
+      }
+
+      const houseConsumption = pvGeneration - pvExport + gridImport;
+      const available = pvGeneration - houseConsumption + (heaterActive ? Math.abs(heaterPower || 0) : 0);
+      setText('house-consumption-value', formatPower(houseConsumption));
+
+      const text = formatPower(available);
+      setText('pv-free-list-value', text);
+    }
+
+    function isHeaterActive(entityState) {
+      if (isUnavailableState(entityState)) return false;
+      const state = String(entityState.state).toLowerCase();
+      return !['off', 'idle'].includes(state);
+    }
+
+    function isHeatPumpRunning(states = {}) {
+      if (isHeaterActive(states['entity-heater-climate'])) return true;
+      const heaterPower = entityPowerWatts(states['entity-heater-power']);
+      return heaterPower !== null && Math.abs(heaterPower) >= 100;
+    }
+
+    function weatherConditionIcon(condition) {
+      const state = String(condition || '').toLowerCase();
+      if (['sunny', 'clear-night', 'partlycloudy'].includes(state)) return '☀️';
+      if (['rainy', 'pouring', 'lightning-rainy', 'snowy-rainy'].includes(state)) return '🌧️';
+      if (state === 'partlycloudy') return '🌤️';
+      return '☁️';
+    }
+
+    function evaluateWeatherDay(item, serverRecommendation = null) {
+      if (serverRecommendation && item?.summary) {
+        return {
+          condition: '',
+          icon: serverRecommendation.icon || '☁️',
+          label: serverRecommendation.label || 'Wetter offen',
+          recommendation: serverRecommendation.pump_mode || 'Schlechtwetter',
+          reason: serverRecommendation.reason || 'Tagesvorhersage noch nicht bewertet.',
+          className: serverRecommendation.category === 'bathing' ? 'good' : 'rain'
+        };
+      }
+
+      const condition = String(item?.condition || '').toLowerCase();
+      const bathingConditions = new Set(['sunny', 'clear-night', 'partlycloudy']);
+      const badConditions = new Set([
+        'cloudy',
+        'fog',
+        'hail',
+        'lightning',
+        'lightning-rainy',
+        'pouring',
+        'rainy',
+        'snowy',
+        'snowy-rainy',
+        'windy',
+        'windy-variant',
+        'exceptional'
+      ]);
+
+      if (bathingConditions.has(condition)) {
+        return {
+          condition,
+          icon: weatherConditionIcon(condition),
+          label: 'Badewetter',
+          recommendation: 'Badebetrieb',
+          reason: 'Überwiegend sonnig oder wolkenlos.',
+          className: 'good'
+        };
+      }
+
+      if (badConditions.has(condition)) {
+        return {
+          condition,
+          icon: weatherConditionIcon(condition),
+          label: 'Schlechtwetter',
+          recommendation: 'Schlechtwetter',
+          reason: 'Stark bewölkt oder Regen erwartet.',
+          className: 'rain'
+        };
+      }
+
+      return {
+        condition,
+        icon: '☁️',
+        label: 'Wetter offen',
+        recommendation: 'Schlechtwetter',
+        reason: 'Tagesvorhersage noch nicht bewertet.',
+        className: 'rain'
+      };
+    }
+
+    function updateWeather(states, snapshot = latestSnapshot) {
+      if (!controlConfig.weatherControl) return;
+      const forecast = Array.isArray(snapshot?.weather_forecast) ? snapshot.weather_forecast : [];
+      const day = forecast[0] || { summary: true };
+      const evaluation = evaluateWeatherDay({ ...day, summary: true }, snapshot?.weather_recommendation);
+      const recommendation = `${evaluation.icon} Empfehlung: ${evaluation.recommendation}. ${evaluation.reason}`;
+      setText('weather-disabled-hint', `Keine automatische Umschaltung. ${recommendation}`);
+      setText('weather-auto-hint', `Automatische Umschaltung aktiv. ${recommendation}`);
+    }
+
+    function heaterStatusHint(heater, states, heaterRunning) {
+      const climateState = isUnavailableState(heater) ? '--' : String(heater.state);
+      const normalized = climateState.toLowerCase();
+      const heaterPower = entityPowerWatts(states['entity-heater-power']);
+      const powerText = heaterPower === null ? '' : ` · Leistung ${formatPower(heaterPower)}`;
+
+      if (heaterRunning && ['off', 'idle', '--'].includes(normalized)) {
+        return `Leistungssensor aktiv${powerText} · Climate ${climateState}`;
+      }
+      return `Climate ${climateState}${powerText}`;
+    }
+
+    function updateHomeAssistantValues(states) {
+      const pump = states['entity-pump-switch'];
+      const heater = states['entity-heater-climate'];
+      let heaterRunning = null;
+
+      if (!isUnavailableState(pump) && !restartPulseActive) {
+        const pumpOn = String(pump.state).toLowerCase() === 'on';
+        setText('pump-status', pumpOn ? 'EIN' : 'AUS');
+        setText('pump-hint', pumpOn ? 'Home Assistant Schalter EIN' : 'Home Assistant Schalter AUS');
+      }
+      updateChlorinatorStatus(states);
+
+      if (controlConfig.heatPumpControl) {
+        heaterRunning = isHeatPumpRunning(states);
+        if (heaterRunning) {
+          heaterOffSince = null;
+        } else if (heaterOffSince === null) {
+          heaterOffSince = Date.now();
+        }
+
+        setText('heater-status', heaterRunning ? 'EIN' : 'AUS');
+        setText('heater-hint', heaterStatusHint(heater, states, heaterRunning));
+
+        if (!isUnavailableState(heater)) {
+          const currentTemp = Number(heater.attributes?.current_temperature);
+          const targetTemp = Number(heater.attributes?.temperature);
+          if (Number.isFinite(currentTemp)) {
+            setText('heater-current-temp', `${formatDecimal(currentTemp, 1)}°`);
+          }
+          if (Number.isFinite(targetTemp)) {
+            heaterTargetTemp = targetTemp;
+            setTargetTemp(targetTemp);
+          }
+        }
+      }
+
+      updatePvAvailability(states);
+      updateWeather(states);
+      updatePowerValue('pump-power-value', states['entity-pump-power']);
+      updateSensorValue('pump-current-value', states['entity-pump-current'], 'A', 1);
+      updateSensorValue('pump-voltage-value', states['entity-pump-voltage'], 'V', 0);
+      updateSensorValue('pump-signal-value', states['entity-pump-signal'], '%', 0);
+      if (!controlConfig.heatPumpControl) return;
+      updatePowerValue('heater-power-value', states['entity-heater-power']);
+      updateSensorValue('heater-current-value', states['entity-heater-current'], 'A', 1);
+      updateSensorValue('heater-voltage-value', states['entity-heater-voltage'], 'V', 0);
+      updateSensorValue('heater-fan-value', states['entity-heater-fan'], '', 0);
+      updateSensorValue('heater-ambient-value', states['entity-heater-ambient'], '°C', 1);
+      updateSensorValue('heater-water-in-value', states['entity-heater-water-in'], '°C', 1);
+      updateSensorValue('heater-water-out-value', states['entity-heater-water-out'], '°C', 1);
+    }
+
+    function setActiveMode(cardSelector, dataName, value) {
+      document.querySelectorAll(`${cardSelector} .mode`).forEach(mode => {
+        mode.classList.toggle('active', mode.dataset[dataName] === value);
+      });
+    }
+
+    function applySnapshot(snapshot) {
+      latestSnapshot = snapshot;
+      const controller = snapshot.controller || {};
+      const states = snapshot.ha_states || {};
+
+      applyAddonOptions(snapshot);
+      liveStateAvailable = Boolean(snapshot.connected);
+      setConnectionStatus(liveStateAvailable, liveStateAvailable ? 'Home Assistant verbunden' : 'Home Assistant getrennt');
+
+      const masterSwitch = document.querySelector('.master .switch');
+      masterSwitch?.classList.toggle('on', controller.master_enabled !== false);
+      setText('master-state-label', controller.master_enabled !== false ? 'EIN' : 'AUS');
+
+      setActiveMode('#pump-control-card', 'pumpMode', controller.pump_mode || 'Aus');
+      setActiveMode('#weather-mode-control', 'weatherMode', controller.weather_mode || 'Empfehlung');
+      setActiveMode('#heater-control-card', 'heaterMode', controller.heater_mode || 'Aus');
+      setHeaterStartModeOptions(
+        heaterStartModesFromSnapshot(snapshot),
+        controller.heater_start_mode || defaultHeaterStartMode
+      );
+      updateHeaterLock();
+      document.getElementById('pump-control-card').classList.toggle('disabled', controller.master_enabled === false);
+
+      if (Number.isFinite(Number(controller.heater_target_temp))) {
+        heaterTargetTemp = Number(controller.heater_target_temp);
+        updateTemperatureRange();
+      }
+
+      if (Array.isArray(controller.command_log)) {
+        commandLog.splice(0, commandLog.length, ...controller.command_log);
+        renderCommandLog();
+      }
+
+      const job = controller.pending_job;
+      updateUpcomingTask(snapshot);
+      setShutdownSequenceVisible(Boolean(job && job.type === 'pump_run_on'));
+      updateHomeAssistantValues(states);
+
+      if (snapshot.runtime?.pump_runtime_today_s !== undefined) {
+        const runtimeText = `Laufzeit heute ${formatDuration(snapshot.runtime.pump_runtime_today_s)}`;
+        const currentHint = document.getElementById('pump-hint')?.textContent || '';
+        if (!currentHint.includes('Pulse')) setText('pump-hint', runtimeText);
+      }
+
+      return states;
+    }
+
+    function applyServerSnapshot(snapshot) {
+      lastSnapshotAt = Date.now();
+      return applySnapshot(snapshot);
+    }
+
+    async function refreshHomeAssistantState() {
+      const snapshot = await apiJson('/api/openpool/state');
+      return applyServerSnapshot(snapshot);
+    }
+
+    function handleHaError(context, error) {
+      console.error(context, error);
+      setConnectionStatus(false, 'Home Assistant Fehler');
+      pushCommand(`${context} fehlgeschlagen`, String(error.message || error).slice(0, 96));
+    }
+
+    function connectStateStream() {
+      if (!window.EventSource) return;
+
+      if (stateStream) {
+        stateStream.close();
+      }
+
+      stateStream = new EventSource(addonApiUrl(`/api/openpool/events?ts=${Date.now()}`));
+      stateStream.onmessage = event => {
+        try {
+          applyServerSnapshot(JSON.parse(event.data));
+        } catch (error) {
+          console.warn('OpenPool Live-Sync konnte Snapshot nicht lesen.', error);
+        }
+      };
+      stateStream.onerror = () => {
+        if (Date.now() - lastSnapshotAt > LIVE_STREAM_STALE_MS) {
+          setConnectionStatus(false, 'Live-Sync wartet');
+        }
+      };
+    }
+
+    async function refreshWhenStreamIsStale() {
+      if (Date.now() - lastSnapshotAt <= LIVE_STREAM_STALE_MS) return;
+
+      try {
+        await refreshHomeAssistantState();
+      } catch (error) {
+        handleHaError('Live-Sync', error);
+      }
+    }
+
+    function toggleSwitch(el) {
+      el.classList.toggle('on');
+      updateDecision();
+      applyMasterStateToHomeAssistant(isMasterEnabled());
+    }
+
+    function isMasterEnabled() {
+      return document.querySelector('.master .switch').classList.contains('on');
+    }
+
+    function getPumpMode() {
+      return document.querySelector('#pump-control-card .mode.active')?.dataset.pumpMode || 'Aus';
+    }
+
+    function getHeaterMode() {
+      if (!controlConfig.heatPumpControl) return 'Aus';
+      return document.querySelector('#heater-control-card .mode.active')?.dataset.heaterMode || 'Aus';
+    }
+
+    function isHeaterRunningForFlow(pumpMode, heaterMode) {
+      return controlConfig.heatPumpControl && isMasterEnabled() && pumpMode !== 'Aus' && (pumpMode === 'Nachtbaden' || heaterMode === 'Ein');
+    }
+
+    function trackHeaterOffState(pumpMode, heaterMode) {
+      // This timestamp is the central guard for deciding whether the pump still
+      // needs to run after the heat pump was switched off.
+      if (isHeaterRunningForFlow(pumpMode, heaterMode)) {
+        heaterOffSince = null;
+        return;
+      }
+
+      if (heaterOffSince === null) {
+        heaterOffSince = Date.now();
+      }
+    }
+
+    function needsPumpRunOnForHeater() {
+      return controlConfig.heatPumpControl && (heaterOffSince === null || Date.now() - heaterOffSince < heaterRunOnMs);
+    }
+
+    function updateHeaterLock() {
+      const heaterCard = document.getElementById('heater-control-card');
+      if (!heaterCard) return;
+      const temperatureCard = document.getElementById('heater-temperature-card');
+      const masterEnabled = isMasterEnabled();
+      const pumpMode = getPumpMode();
+      const heaterLocked = !masterEnabled || pumpMode === 'Aus';
+      const overlayText = !masterEnabled
+        ? 'Hauptfreigabe AUS – Heizungsmodus gesperrt'
+        : 'Pumpenmodus AUS – Heizung benötigt Pumpenflow';
+      const temperatureOverlayText = !masterEnabled
+        ? 'Hauptfreigabe AUS – Heizungstemperatur gesperrt'
+        : 'Pumpenmodus AUS – Heizung benötigt Pumpenflow';
+
+      heaterCard.classList.toggle('disabled', heaterLocked);
+      temperatureCard?.classList.toggle('disabled', heaterLocked);
+      const startModeSelect = document.getElementById('heater-start-mode-select');
+      if (startModeSelect) startModeSelect.disabled = heaterLocked;
+      const overlay = heaterCard.querySelector('.disabled-overlay span');
+      const temperatureOverlay = temperatureCard?.querySelector('.disabled-overlay span');
+      if (overlay) overlay.textContent = overlayText;
+      if (temperatureOverlay) temperatureOverlay.textContent = temperatureOverlayText;
+    }
+
+    function setShutdownSequenceVisible(visible) {
+      document.getElementById('shutdown-sequence').classList.toggle('visible', visible);
+    }
+
+    function cancelShutdownSequence(targetMode) {
+      if (!shutdownActive) return;
+      shutdownActive = false;
+      setShutdownSequenceVisible(false);
+      pushCommand('Nachlauf abgebrochen', 'Neuer Modus: ' + targetMode + '.');
+    }
+
+    function startShutdownSequence() {
+      shutdownActive = true;
+      restartPulseActive = false;
+      setShutdownSequenceVisible(true);
+    }
+
+    async function applyMasterStateToHomeAssistant(enabled) {
+      try {
+        await sendOpenPoolAction({ type: 'master', enabled });
+      } catch (error) {
+        handleHaError('Hauptfreigabe', error);
+      }
+    }
+
+    async function applyPumpModeToHomeAssistant(pumpMode) {
+      if (!isMasterEnabled()) return;
+
+      try {
+        await sendOpenPoolAction({ type: 'pump_mode', mode: pumpMode });
+      } catch (error) {
+        handleHaError('Pumpenmodus', error);
+      }
+    }
+
+    async function applyWeatherModeToHomeAssistant(weatherMode) {
+      if (!controlConfig.weatherControl) return;
+
+      try {
+        await sendOpenPoolAction({ type: 'weather_mode', mode: weatherMode });
+      } catch (error) {
+        handleHaError('Wettersteuerung', error);
+      }
+    }
+
+    async function applyHeaterModeToHomeAssistant(heaterMode) {
+      if (!controlConfig.heatPumpControl || !isMasterEnabled() || getPumpMode() === 'Aus') return;
+
+      try {
+        await sendOpenPoolAction({ type: 'heater_mode', mode: heaterMode });
+      } catch (error) {
+        handleHaError('Heizungsmodus', error);
+      }
+    }
+
+    async function applyHeaterStartModeToHomeAssistant(mode) {
+      if (!controlConfig.heatPumpControl || !isMasterEnabled() || getPumpMode() === 'Aus') return;
+
+      try {
+        await sendOpenPoolAction({ type: 'heater_start_mode', mode: normalizeHeaterStartMode(mode) });
+      } catch (error) {
+        handleHaError('WP-Startmodus', error);
+      }
+    }
+
+    async function manualRestartPulse() {
+      if (!isMasterEnabled() || getPumpMode() === 'Aus') return;
+      restartPulseActive = true;
+      shutdownActive = false;
+      setShutdownSequenceVisible(false);
+      setText('pump-status', 'Pulse');
+      setText('pump-hint', '5 Sekunden AUS/EIN');
+      setText('chlor-status', 'Neustart');
+      setText('chlor-hint', 'Chlorinator wird neu angestoßen');
+      pushCommand('Chlorsystem neu starten', 'Restart-Pulse aktiv, Modus bleibt unverändert.');
+
+      try {
+        await sendOpenPoolAction({ type: 'restart_pulse' });
+      } catch (error) {
+        restartPulseActive = false;
+        handleHaError('Restart-Pulse', error);
+      }
+    }
+
+    function getTemperatureBounds() {
+      let min = optionNumber(controlConfig.heaterTempMin, 18);
+      let max = optionNumber(controlConfig.heaterTempMax, 32);
+      if (max <= min) max = min + 0.5;
+
+      return { min, max };
+    }
+
+    function updateTemperatureSliderFill(slider) {
+      const min = Number(slider.min);
+      const max = Number(slider.max);
+      const value = Number(slider.value);
+      const progress = max > min ? ((value - min) / (max - min)) * 100 : 0;
+      slider.style.setProperty('--temp-progress', Math.min(100, Math.max(0, progress)) + '%');
+    }
+
+    function setTargetTemp(value) {
+      // Clamp the target temperature to the bounds configured in the add-on
+      // options and update the colored slider fill in one place.
+      const { min, max } = getTemperatureBounds();
+      heaterTargetTemp = Math.min(max, Math.max(min, Number(value)));
+      const formatted = heaterTargetTemp.toFixed(1).replace('.', ',');
+      setText('heater-target-temp', formatted + '°');
+      const slider = document.getElementById('heater-target-slider');
+      if (slider) {
+        slider.min = min;
+        slider.max = max;
+        slider.value = heaterTargetTemp;
+        updateTemperatureSliderFill(slider);
+      }
+    }
+
+    function updateTemperatureRange() {
+      setTargetTemp(heaterTargetTemp);
+    }
+
+    function updateDecision() {
+      // Local rules engine for the visible mode selection. Actual switching is
+      // performed separately through Home Assistant service calls.
+      const masterEnabled = isMasterEnabled();
+      const pumpMode = getPumpMode();
+      const heaterMode = getHeaterMode();
+      const pumpCard = document.getElementById('pump-control-card');
+
+      pumpCard.classList.toggle('disabled', !masterEnabled);
+      updateHeaterLock();
+      updateHeatSourceMetric();
+
+      setText('master-state-label', masterEnabled ? 'EIN' : 'AUS');
+
+      if (!masterEnabled) {
+        shutdownActive = false;
+        restartPulseActive = false;
+        trackHeaterOffState('Aus', 'Aus');
+        setShutdownSequenceVisible(false);
+        setText('pump-status', 'AUS');
+        setText('pump-hint', 'durch Hauptfreigabe gesperrt');
+        setText('chlor-status', 'AUS');
+        setText('chlor-hint', 'gemeinsam mit Pumpe aus');
+        setText('heater-status', 'AUS');
+        setText('heater-hint', 'durch Hauptfreigabe gesperrt');
+        pushCommand(
+          'Hauptfreigabe AUS',
+          controlConfig.heatPumpControl
+            ? 'Pumpe, Chlorinator und Wärmepumpe gesperrt.'
+            : 'Pumpe und Chlorinator gesperrt.'
+        );
+        return;
+      }
+
+      if (restartPulseActive) {
+        restartPulseActive = false;
+      }
+
+      const pumpTexts = {
+        'Aus': {
+          title: 'Abschaltsequenz',
+          subtitle: 'Heizung wird zuerst ausgeschaltet. Die Pumpe bleibt für den Nachlauf aktiv und stoppt danach.',
+          pump: 'Nachlauf',
+          pumpHint: 'stoppt nach Heizungs-Nachlauf',
+          chlor: 'AUS',
+          chlorHint: 'Chlorinator stoppt mit der Pumpe',
+          reason: '<strong>Pumpenmodus Aus.</strong> Heizung aus, 5 Minuten Nachlauf, dann Pumpe aus.'
+        },
+        'Dauerbetrieb': {
+          title: 'Dauerbetrieb',
+          subtitle: 'Die Pumpe läuft dauerhaft. Alle 12 Stunden erfolgt ein kurzer Restart, damit das Intex-System nicht in den Ruhezustand geht.',
+          pump: 'EIN',
+          pumpHint: '12h-Restart aktiv',
+          chlor: '--',
+          chlorHint: 'wird aus Pumpenleistung berechnet',
+          reason: '<strong>Dauerbetrieb.</strong> Pumpe läuft dauerhaft, Restart alle 12h.'
+        },
+        'Badebetrieb': {
+          title: 'Badebetrieb',
+          subtitle: 'Die Pumpe läuft nach Badezeitplan mit kurzen Restart-Pulsen für den Chlorinator.',
+          pump: 'EIN',
+          pumpHint: 'Badebetrieb bis 22:00',
+          chlor: '--',
+          chlorHint: 'wird aus Pumpenleistung berechnet',
+          reason: '<strong>Badebetrieb.</strong> Pumpe läuft im Zeitfenster, Restart-Pulse starten den Chlorinator neu. Wetter: Badewetter.'
+        },
+        'Schlechtwetter': {
+          title: 'Schlechtwetter',
+          subtitle: 'Reduzierte Chlorung bei stark bewölktem Himmel oder Regen.',
+          pump: 'EIN',
+          pumpHint: '13:00–16:15',
+          chlor: '--',
+          chlorHint: 'wird aus Pumpenleistung berechnet',
+          reason: '<strong>Schlechtwetter.</strong> Reduzierte Chlorung bei stark bewölktem Himmel oder Regen.'
+        },
+        'Nachtbaden': {
+          title: 'Nachtbaden',
+          subtitle: `Pumpe und Heizung laufen unabhängig von der PV-Leistung. Der Modus endet automatisch nach ${formatMinutesCompact(controlConfig.nightSwimMaxMinutes)}.`,
+          pump: 'EIN',
+          pumpHint: nightSwimLimitText(),
+          chlor: '--',
+          chlorHint: 'wird aus Pumpenleistung berechnet',
+          reason: `<strong>Nachtbaden.</strong> Pumpe + Heizung EIN, PV wird ignoriert, ${nightSwimLimitText()}.`
+        }
+      };
+
+      if (pumpMode !== 'Aus') {
+        cancelShutdownSequence(pumpMode);
+        setShutdownSequenceVisible(false);
+      }
+
+      const pumpOffNeedsRunOn = pumpMode === 'Aus' && needsPumpRunOnForHeater();
+      const selected = { ...(pumpTexts[pumpMode] || pumpTexts['Aus']) };
+
+      if (pumpMode === 'Aus' && !pumpOffNeedsRunOn) {
+        selected.title = 'Pumpe aus';
+        selected.subtitle = controlConfig.heatPumpControl
+          ? 'Die Heizung ist bereits seit mehr als 5 Minuten aus. Die Pumpe stoppt ohne Nachlauf.'
+          : 'Die Pumpe stoppt ohne Heizungs-Nachlauf.';
+        selected.pump = 'AUS';
+        selected.pumpHint = 'kein Nachlauf nötig';
+      }
+
+      if (!controlConfig.heatPumpControl && pumpMode === 'Nachtbaden') {
+        selected.subtitle = `Die Pumpe läuft unabhängig vom Tagesprofil. Der Modus endet automatisch nach ${formatMinutesCompact(controlConfig.nightSwimMaxMinutes)}.`;
+      }
+
+      setText('pump-status', selected.pump);
+      setText('pump-hint', selected.pumpHint);
+      setText('chlor-status', selected.chlor);
+      setText('chlor-hint', selected.chlorHint);
+      if (latestSnapshot?.ha_states) updateChlorinatorStatus(latestSnapshot.ha_states);
+
+      if (pumpMode === 'Aus') {
+        trackHeaterOffState(pumpMode, heaterMode);
+        setText('heater-status', 'gesperrt');
+        setText('heater-hint', 'Pumpe ist ausgeschaltet');
+        if (pumpOffNeedsRunOn) {
+          startShutdownSequence();
+          pushCommand('Pumpenmodus Aus', 'Heizung aus, 5 Minuten Nachlauf, dann Pumpe aus.');
+        } else {
+          shutdownActive = false;
+          setShutdownSequenceVisible(false);
+          pushCommand('Pumpe direkt aus', 'Heizung ist seit mehr als 5 Minuten aus, kein Nachlauf nötig.');
+        }
+        return;
+      }
+
+      if (pumpMode === 'Nachtbaden') {
+        trackHeaterOffState(pumpMode, heaterMode);
+        if (controlConfig.heatPumpControl) {
+          setText('heater-status', 'EIN');
+          setText('heater-hint', 'PV wird ignoriert');
+          pushCommand('Nachtbaden aktiv', `Pumpe + Heizung EIN, PV wird ignoriert, ${nightSwimLimitText()}.`);
+        } else {
+          pushCommand('Nachtbaden aktiv', `Pumpe EIN, ${nightSwimLimitText()}.`);
+        }
+        return;
+      }
+
+      const heaterTexts = {
+        'Aus': {
+          status: 'AUS',
+          hint: 'manuell deaktiviert',
+          reason: '<strong>Heizung Aus.</strong>'
+        },
+        'Ein': {
+          status: 'EIN',
+          hint: 'manuell erzwungen',
+          reason: '<strong>Heizung Ein.</strong> Läuft manuell, solange Pumpenflow da ist.'
+        },
+        'PV-Automatik': {
+          status: 'Auto',
+          hint: 'Warte auf Wärmepumpenfreigabe',
+          reason: '<strong>PV-Automatik.</strong> Start bei stabiler Wärmepumpenfreigabe.'
+        }
+      };
+
+      const heater = { ...(heaterTexts[heaterMode] || heaterTexts['Aus']) };
+      trackHeaterOffState(pumpMode, heaterMode);
+      setText('heater-status', heater.status);
+      setText('heater-hint', heater.hint);
+      pushCommand(selected.title + ' aktiv', 'Pumpe: ' + selected.pumpHint + ' · Heizung: ' + heater.hint + '.');
+    }
+
+    document.querySelectorAll('.mode').forEach(mode => {
+      mode.addEventListener('click', () => {
+        if (mode.closest('.control-card')?.classList.contains('disabled')) return;
+        const parent = mode.parentElement;
+        const isPumpMode = mode.closest('#pump-control-card');
+        const targetPumpMode = mode.dataset.pumpMode;
+        const targetHeaterMode = mode.dataset.heaterMode;
+        const targetWeatherMode = mode.dataset.weatherMode;
+
+        if (mode.dataset.action === 'restart') {
+          manualRestartPulse();
+          return;
+        }
+
+        if (isPumpMode && targetPumpMode) {
+          restartPulseActive = false;
+        }
+
+        if (isPumpMode && shutdownActive && targetPumpMode && targetPumpMode !== 'Aus') {
+          cancelShutdownSequence(targetPumpMode);
+        }
+
+        parent.querySelectorAll('.mode').forEach(m => m.classList.remove('active'));
+        mode.classList.add('active');
+
+        updateDecision();
+        if (isPumpMode && targetPumpMode) {
+          applyPumpModeToHomeAssistant(targetPumpMode);
+        } else if (targetWeatherMode) {
+          applyWeatherModeToHomeAssistant(targetWeatherMode);
+        } else if (targetHeaterMode) {
+          applyHeaterModeToHomeAssistant(targetHeaterMode);
+        }
+      });
+    });
+
+    document.getElementById('heater-target-slider')?.addEventListener('change', async () => {
+      try {
+        await sendOpenPoolAction({ type: 'target_temp', value: heaterTargetTemp });
+      } catch (error) {
+        handleHaError('Zieltemperatur', error);
+      }
+    });
+
+    document.getElementById('heater-start-mode-select')?.addEventListener('change', event => {
+      applyHeaterStartModeToHomeAssistant(event.target.value);
+    });
+
+    async function bootOpenPool() {
+      syncTileTooltips();
+      await loadInitialState();
+      updateTemperatureRange();
+      renderCommandLog();
+      document.getElementById('pump-control-card').classList.toggle('disabled', !isMasterEnabled());
+      updateHeaterLock();
+      connectStateStream();
+      refreshHomeAssistantState().catch(error => handleHaError('Start-Sync', error));
+      refreshTimer = window.setInterval(refreshWhenStreamIsStale, HA_POLL_INTERVAL_MS);
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        refreshHomeAssistantState().catch(error => handleHaError('Live-Sync', error));
+      }
+    });
+
+    bootOpenPool();
+  </script>
+</body>
+</html>

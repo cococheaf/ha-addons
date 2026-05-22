@@ -1,0 +1,36 @@
+configuration:
+  ha_url:
+    name: Home Assistant URL
+    description: Internal Home Assistant API URL. Leave unchanged for regular HA OS/Supervised installations.
+  ha_token:
+    name: Home Assistant token
+    description: Optional long-lived access token, only needed when using an external Home Assistant URL.
+  entity_power:
+    name: Power sensor
+    description: Entity ID of the sensor that exposes the current grid power.
+  power_sign:
+    name: Sign
+    description: -1 inverts the sensor value, 1 keeps it unchanged.
+  power_multiplier:
+    name: Multiplier
+    description: Conversion factor to watts, for example 1000 when the sensor reports kW.
+  power_offset:
+    name: Offset
+    description: Correction value in watts, added after sign and multiplier.
+  cache_ttl_seconds:
+    name: Cache time
+    description: Minimum seconds between Home Assistant API reads.
+  stale_after_seconds:
+    name: Stale after
+    description: Seconds after which missing successful sensor reads are reported as stale.
+  round_digits:
+    name: Rounding
+    description: Number of decimals in the EcoTracker JSON response.
+  request_timeout_seconds:
+    name: Request timeout
+    description: Timeout in seconds for Home Assistant API requests.
+  log_level:
+    name: Log level
+    description: Verbosity of add-on logs.
+network:
+  80/TCP: EcoTracker-compatible HTTP endpoint.

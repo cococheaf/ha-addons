@@ -1,0 +1,51 @@
+name: EcoTracker Meter Bridge
+version: "1.0.0"
+slug: ecotracker_meter_bridge
+description: EcoTracker-compatible /v1/json endpoint from a Home Assistant power sensor
+url: "https://github.com/cococheaf/ha-addons"
+startup: application
+boot: auto
+init: false
+stage: stable
+webui: "http://[HOST]:[PORT:80]/health"
+
+arch:
+  - amd64
+  - aarch64
+
+homeassistant_api: true
+
+ports:
+  80/tcp: 80
+
+ports_description:
+  80/tcp: EcoTracker-compatible HTTP endpoint
+
+options:
+  ha_url: "http://supervisor/core"
+
+  entity_power: "sensor.solaredge_modbuszahler_ac_power"
+  power_sign: "-1"
+  power_multiplier: 1.0
+  power_offset: 0.0
+
+  cache_ttl_seconds: 1.0
+  stale_after_seconds: 15
+  round_digits: 2
+  request_timeout_seconds: 3.0
+  log_level: info
+
+schema:
+  ha_url: str
+  ha_token: password?
+
+  entity_power: "match(^[a-z_]+\\.[a-z0-9_]+$)"
+  power_sign: "list(-1|1)"
+  power_multiplier: "float(0,)"
+  power_offset: float
+
+  cache_ttl_seconds: "float(0,60)"
+  stale_after_seconds: "int(1,3600)"
+  round_digits: "int(0,6)"
+  request_timeout_seconds: "float(0.1,30)"
+  log_level: "list(trace|debug|info|notice|warning|error|fatal)"

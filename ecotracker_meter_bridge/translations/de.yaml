@@ -1,0 +1,36 @@
+configuration:
+  ha_url:
+    name: Home-Assistant-URL
+    description: Interne URL zur Home-Assistant-API. Für normale HA-OS/Supervised-Installationen unverändert lassen.
+  ha_token:
+    name: Home-Assistant-Token
+    description: Optionaler Long-Lived-Access-Token, nur nötig wenn eine externe HA-URL verwendet wird.
+  entity_power:
+    name: Leistungssensor
+    description: Entity-ID des Sensors, dessen Status die aktuelle Netzleistung liefert.
+  power_sign:
+    name: Vorzeichen
+    description: -1 invertiert den Sensorwert, 1 übernimmt ihn unverändert.
+  power_multiplier:
+    name: Multiplikator
+    description: Faktor für die Umrechnung in Watt, zum Beispiel 1000 bei Sensorwerten in kW.
+  power_offset:
+    name: Offset
+    description: Korrekturwert in Watt, der nach Vorzeichen und Multiplikator addiert wird.
+  cache_ttl_seconds:
+    name: Cache-Zeit
+    description: Mindestzeit in Sekunden zwischen zwei Home-Assistant-Abfragen.
+  stale_after_seconds:
+    name: Veraltet nach
+    description: Zeit in Sekunden, nach der ein ausbleibender erfolgreicher Messwert als stale markiert wird.
+  round_digits:
+    name: Rundung
+    description: Anzahl der Nachkommastellen im EcoTracker-JSON.
+  request_timeout_seconds:
+    name: Abfrage-Timeout
+    description: Timeout in Sekunden für Home-Assistant-API-Abfragen.
+  log_level:
+    name: Log-Level
+    description: Detailgrad der Add-on-Logs.
+network:
+  80/TCP: EcoTracker-kompatibler HTTP-Endpunkt.
