@@ -4,6 +4,7 @@ __pycache__/
 .coverage
 htmlcov/
 .DS_Store
+*.code-workspace
 .venv/
 venv/
 *.egg-info/
