@@ -30,6 +30,7 @@ DEFAULT_HA_URL = "http://homeassistant:8123"
 DEFAULT_POLL_INTERVAL_SECONDS = 1
 DEFAULT_LOG_LEVEL = "info"
 PULSE_TRIGGER_WINDOW_SECONDS = 90
+PULSE_RESTORE_GRACE_SECONDS = 20
 RUN_ON_SECONDS = 5 * 60
 RESTART_PULSE_SECONDS = 5
 CONTINUOUS_RESTART_INTERVAL_SECONDS = 12 * 60 * 60
@@ -869,15 +870,44 @@ class OpenPoolController:
             self.state["pending_job"] = None
             self._start_restart_pulse(duration_s, title)
             return
+        if job.get("type") == "restart_pulse_restore":
+            if self._pump_is_active():
+                self.state["pending_job"] = None
+                self._save_state()
+                self._apply_control_rules()
+                return
+            if current_ts < float(job.get("until") or 0):
+                return
+            self.state["pending_job"] = None
+            self.command("Restart-Pulse Restore offen", "Pumpe wurde nicht bestaetigt, Sicherheitslogik wird angewendet.")
+            self._save_state()
+            self._apply_control_rules()
+            return
 
         if current_ts < float(job.get("until") or 0):
             return
 
         if job.get("type") == "restart_pulse":
-            self.state["pending_job"] = None
-            self.command("Restart-Pulse fertig", "Pumpenprofil wird wieder angewendet.")
+            # Restart pulses are short enough that the heat pump may stay on;
+            # wait for Home Assistant to confirm pump flow again before normal rules resume.
+            pump_mode = str(self.state.get("pump_mode") or "Aus")
+            restore_pump = (
+                bool(job.get("restore_pump", True))
+                and bool(self.state.get("master_enabled"))
+                and self._pump_should_run(pump_mode)
+            )
+            if restore_pump:
+                self._turn_pump(True)
+                self.state["pending_job"] = {
+                    "type": "restart_pulse_restore",
+                    "until": current_ts + PULSE_RESTORE_GRACE_SECONDS,
+                }
+                self.command("Restart-Pulse fertig", "Pumpe wird wieder eingeschaltet.")
+            else:
+                self.state["pending_job"] = None
+                self.command("Restart-Pulse fertig", "Pumpenprofil wird wieder angewendet.")
+                self._apply_control_rules()
             self._save_state()
-            self._apply_control_rules()
             return
         elif job.get("type") == "pump_run_on":
             if not self.heat_pump_enabled():
@@ -1283,8 +1313,14 @@ class OpenPoolController:
 
     def _start_restart_pulse(self, duration_s: int, title: str) -> None:
         current_ts = now_ts()
+        pump_mode = str(self.state.get("pump_mode") or "Aus")
+        restore_pump = bool(self.state.get("master_enabled")) and self._pump_should_run(pump_mode)
         self._turn_pump(False)
-        self.state["pending_job"] = {"type": "restart_pulse", "until": current_ts + max(1, duration_s)}
+        self.state["pending_job"] = {
+            "type": "restart_pulse",
+            "until": current_ts + max(1, duration_s),
+            "restore_pump": restore_pump,
+        }
         if self.state.get("pump_mode") == "Dauerbetrieb":
             self.state["continuous_restart_last_at"] = current_ts
         self.command(title, f"Pumpe fuer {duration_s} Sekunden ausgeschaltet.")
@@ -1307,7 +1343,7 @@ class QuietThreadingHTTPServer(ThreadingHTTPServer):
 
 
 class OpenPoolHandler(BaseHTTPRequestHandler):
-    server_version = "OpenPool/1.1.6"
+    server_version = "OpenPool/1.1.7"
     protocol_version = "HTTP/1.1"
 
     def do_GET(self) -> None:

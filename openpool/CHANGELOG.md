@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.7
+
+- Keep heat-pump control untouched during short restart pulses and add a short
+  pump-restore confirmation window after each pulse.
+- Avoid the false `Heizung AUS` command-log entry that could happen while Home
+  Assistant had not yet reported the pump as on again after a pulse.
+
 ## 1.1.6
 
 - Read the available heat-pump start operating modes from the configured Home

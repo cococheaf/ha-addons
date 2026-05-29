@@ -1978,6 +1978,7 @@
       if (job.type === 'pump_run_on') return { title: 'Pumpe nach Nachlauf ausschalten', at: job.until };
       if (job.type === 'restart_pulse_run_on') return { title: 'Restart-Pulse starten', at: snapshotNowSeconds(latestSnapshot) };
       if (job.type === 'restart_pulse') return { title: 'Restart-Pulse beenden', at: job.until };
+      if (job.type === 'restart_pulse_restore') return { title: 'Pumpe nach Restart-Pulse bestaetigen', at: job.until };
       return { title: 'Aktiven Task abschließen', at: job.until };
     }
 
