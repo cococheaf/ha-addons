@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.11
+
+- Preserve the selected heat-pump start mode across add-on restarts even before
+  Home Assistant has reported the selector options.
+- Re-apply the stored heat-pump operating mode after an add-on restart when the
+  heat pump is already running.
+- Shorten OpenPool README files and clean up add-on documentation wording.
+
 ## 1.1.10
 
 - Switch OpenPool add-on backups from hot to cold mode so Home Assistant

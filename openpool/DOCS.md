@@ -83,9 +83,11 @@ the available PV power stays below `pv_stop_export_w` for
 If `entities.heater_operation_mode` points to a Home Assistant `select` entity,
 OpenPool reads the available start modes directly from that entity's
 `attributes.options`. The UI dropdown therefore follows the actual modes
-provided by the heat pump integration. Until Home Assistant has reported the
-selector options, OpenPool keeps a small fallback list with the known Intex
-modes so the dashboard remains usable during startup.
+provided by the heat pump integration. The selected value is persisted in
+`/data/openpool_state.json` and is preserved during add-on restarts even before
+Home Assistant has reported selector options again. If the heat pump is already
+running after an add-on restart, OpenPool re-applies the stored selector value
+when the control loop resumes.
 
 ## Pump Profiles
 

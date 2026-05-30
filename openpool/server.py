@@ -196,8 +196,24 @@ def day_key_for_ts(value: float) -> str:
     return time.strftime("%Y-%m-%d", time.localtime(value))
 
 
+def clean_mode_options(options: object) -> list[str]:
+    if not isinstance(options, (list, tuple)):
+        return []
+    modes: list[str] = []
+    for option in options:
+        mode = str(option or "").strip()
+        if mode and not any(existing.lower() == mode.lower() for existing in modes):
+            modes.append(mode)
+    return modes
+
+
+def stored_heater_start_mode(value: object) -> str:
+    mode = str(value or "").strip()
+    return mode or DEFAULT_HEATER_START_MODE
+
+
 def normalize_heater_start_mode(value: object, options: list[str] | tuple[str, ...] | None = None) -> str:
-    available = [str(option).strip() for option in (options or FALLBACK_HEATER_START_MODES) if str(option).strip()]
+    available = clean_mode_options(options or FALLBACK_HEATER_START_MODES)
     requested = str(value or "").strip().lower()
     for mode in available:
         if requested == mode.lower():
@@ -441,7 +457,7 @@ class OpenPoolController:
             state["continuous_restart_last_at"] = None
         if state.get("heater_mode") == "Wetterautomatik":
             state["heater_mode"] = "PV-Automatik"
-        state["heater_start_mode"] = normalize_heater_start_mode(state.get("heater_start_mode"))
+        state["heater_start_mode"] = stored_heater_start_mode(state.get("heater_start_mode"))
         if state.get("weather_mode") not in WEATHER_MODE_OPTIONS:
             state["weather_mode"] = "Empfehlung"
         state["command_log"] = list(state.get("command_log") or [])[:COMMAND_LOG_LIMIT]
@@ -483,12 +499,15 @@ class OpenPoolController:
 
     def heater_start_modes(self) -> list[str]:
         selector = self.ha_states.get("heater_operation_mode") or {}
-        options = (selector.get("attributes") or {}).get("options")
-        if isinstance(options, list):
-            modes = [str(option).strip() for option in options if str(option).strip()]
-            if modes:
-                return modes
-        return list(FALLBACK_HEATER_START_MODES)
+        modes = clean_mode_options((selector.get("attributes") or {}).get("options"))
+        if modes:
+            return modes
+
+        modes = clean_mode_options(FALLBACK_HEATER_START_MODES)
+        stored = stored_heater_start_mode(self.state.get("heater_start_mode"))
+        if stored and not any(mode.lower() == stored.lower() for mode in modes):
+            modes.append(stored)
+        return modes
 
     def entities(self) -> dict:
         entities = dict(DEFAULT_ENTITIES)
@@ -1288,6 +1307,11 @@ class OpenPoolController:
         if current_state not in {"", "unknown", "unavailable"}:
             heater_on = current_state not in {"off", "idle"} or self._heater_power_is_active()
             if heater_on == enabled:
+                if enabled and self._heater_operation_mode_needs_update():
+                    try:
+                        self._set_heater_operation_mode()
+                    except RuntimeError as err:
+                        log("warning", f"could not set heat pump operation mode: {err}")
                 return
         if domain == "climate":
             if enabled:
@@ -1327,12 +1351,30 @@ class OpenPoolController:
         entity_id = self.entities().get("heater_operation_mode")
         if not entity_id:
             return
+        option = self._heater_operation_mode_target()
+        current = self._current_heater_operation_mode()
+        if current and current.lower() == option.lower():
+            self.state["heater_start_mode"] = option
+            return
+        self.state["heater_start_mode"] = option
         self.ha.service(
             "select",
             "select_option",
             entity_id=entity_id,
-            data={"option": normalize_heater_start_mode(self.state.get("heater_start_mode"), self.heater_start_modes())},
+            data={"option": option},
         )
+
+    def _heater_operation_mode_target(self) -> str:
+        return normalize_heater_start_mode(self.state.get("heater_start_mode"), self.heater_start_modes())
+
+    def _current_heater_operation_mode(self) -> str:
+        return str((self.ha_states.get("heater_operation_mode") or {}).get("state") or "").strip()
+
+    def _heater_operation_mode_needs_update(self) -> bool:
+        current = self._current_heater_operation_mode()
+        if current.lower() in {"", "unknown", "unavailable"}:
+            return False
+        return current.lower() != self._heater_operation_mode_target().lower()
 
     def _start_restart_pulse(self, duration_s: int, title: str) -> None:
         current_ts = now_ts()
@@ -1367,7 +1409,7 @@ class QuietThreadingHTTPServer(ThreadingHTTPServer):
 
 
 class OpenPoolHandler(BaseHTTPRequestHandler):
-    server_version = "OpenPool/1.1.10"
+    server_version = "OpenPool/1.1.11"
     protocol_version = "HTTP/1.1"
 
     def do_GET(self) -> None:

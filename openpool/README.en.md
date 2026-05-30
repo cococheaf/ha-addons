@@ -2,38 +2,30 @@
 
 [Deutsche Version](README.md)
 
-OpenPool is a Home Assistant add-on for compact pool control. It controls the
-pump, chlorinator, heat pump, weather profiles and PV surplus heating from a
-tablet-friendly interface.
+OpenPool is a Home Assistant add-on for compact pool control around the pump,
+chlorinator, heat pump, weather profile and PV surplus. It is currently designed
+for setups based on the Intex 26680 sand filter and saltwater chlorinator
+system.
 
-OpenPool is currently designed for setups based on the Intex 26680 sand filter
-and saltwater chlorinator system.
+## Features
 
-![OpenPool Tablet Dashboard](https://raw.githubusercontent.com/cococheaf/ha-openpool/main/docs/screenshots/openpool-tablet.png)
-
-## In Short
-
-- Pump profiles: off, continuous operation, swim mode, bad weather mode, night
+- Pump profiles: off, continuous operation, swim mode, bad weather and night
   swimming.
-- Restart pulses for the chlorinator.
-- Chlorinator status from pump power.
-- Heat pump with target temperature, start operating mode from a Home Assistant
-  selector, run-on and optional PV automation.
+- Restart pulses for the chlorinator with configurable pulse duration.
+- Heat-pump control with target temperature, start operating mode from a Home
+  Assistant selector, run-on protection and optional PV automation.
 - Weather control as recommendation or automation.
-- Live sync between multiple open interfaces.
-- Persistent state in `/data/openpool_state.json`.
+- Live sync between multiple browsers and persistent state in
+  `/data/openpool_state.json`.
 
 ## Before First Start
 
-Adapt the entities in the add-on configuration to your Home Assistant
-installation. The bundled entity IDs are only examples.
-
+Adapt all entities in the add-on configuration to your Home Assistant setup.
 Most important:
 
 - `entities.pump_switch`
 - `entities.heater_climate`
-- `entities.heater_operation_mode` for the optional Home Assistant heat pump
-  selector
+- `entities.heater_operation_mode`
 - `entities.weather`
 - `entities.pv_generation`
 - `entities.pv_export`
@@ -50,16 +42,4 @@ wrong device.
 3. Start the add-on.
 4. Enable **Show in sidebar**.
 
-## Home Assistant Logbook Note
-
-By default, OpenPool uses the `SUPERVISOR_TOKEN`. If the logbook should show
-actions as triggered by `OpenPool`, create a Home Assistant user named
-`OpenPool`, create a long-lived access token for that user and set:
-
-```yaml
-connection:
-  auth_mode: openpool_user_token
-  access_token: "TOKEN_OF_THE_OPENPOOL_USER"
-```
-
-More technical details are in [DOCS.md](DOCS.md).
+Technical details are in [DOCS.md](DOCS.md).
