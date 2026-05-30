@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.10
+
+- Switch OpenPool add-on backups from hot to cold mode so Home Assistant
+  Supervisor stops the add-on briefly while backing up the frequently updated
+  runtime state file.
+- Exclude transient `*.tmp` state-write files from add-on backups.
+
 ## 1.1.9
 
 - Remove the hard 3-second restart-pulse limit again. The add-on option

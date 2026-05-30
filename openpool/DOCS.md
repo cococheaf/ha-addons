@@ -42,6 +42,14 @@ The frontend listens to `GET /api/openpool/events` for live state updates, uses
 `POST /api/openpool/action`. This keeps multiple browser sessions in sync and
 allows automation jobs to continue when the UI is closed.
 
+## Backups
+
+OpenPool uses `backup: cold` in its add-on metadata. Home Assistant Supervisor
+therefore stops OpenPool briefly while creating an add-on backup, then starts it
+again afterwards. This avoids hot-backup races with `/data/openpool_state.json`,
+which is updated frequently while the controller is running. Transient
+`*.tmp` files from atomic state writes are excluded from backups.
+
 ## Heat Pump Run-on
 
 Any planned pump stop is protected by the heat pump run-on rule. Before a pump
