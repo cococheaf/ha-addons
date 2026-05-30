@@ -118,7 +118,7 @@ configuration:
     fields:
       pulse_duration_s:
         name: Pulse duration
-        description: Seconds the pump stays off for each restart pulse. OpenPool limits this value to a maximum of 3 seconds for safety.
+        description: Seconds the pump stays off for each restart pulse. This duration is used for manual, scheduled and 12-hour restart pulses.
       pulse_1:
         name: Pulse 1
         fields:

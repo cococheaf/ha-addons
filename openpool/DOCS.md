@@ -89,10 +89,10 @@ labels, the upcoming task and the automatic Nachtbaden shutdown all use this
 same add-on option.
 
 Restart pulses use one shared duration from
-`restart_pulses.pulse_duration_s` (`Pulse-Dauer`). OpenPool limits this value
-to a maximum of 3 seconds so the pump is never intentionally switched off for
-longer during a chlorinator restart pulse. Older per-pulse `duration_s` values
-are accepted as a migration fallback, but are clamped to the same limit.
+`restart_pulses.pulse_duration_s` (`Pulse-Dauer`). This value defines how many
+seconds the pump stays off between pulse start and pulse stop. It is used for
+manual, scheduled and 12-hour restart pulses. Older per-pulse `duration_s`
+values are accepted as a migration fallback when the central option is missing.
 
 ## Weather Recommendation
 

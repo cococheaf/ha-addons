@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.9
+
+- Remove the hard 3-second restart-pulse limit again. The add-on option
+  `restart_pulses.pulse_duration_s` now defines the actual pump-off duration.
+- Keep `3` seconds as the default and validate only that pulse duration is at
+  least 1 second.
+
 ## 1.1.8
 
 - Add one central add-on option `restart_pulses.pulse_duration_s` (`Pulse-Dauer`)

@@ -31,7 +31,6 @@ DEFAULT_POLL_INTERVAL_SECONDS = 1
 DEFAULT_LOG_LEVEL = "info"
 PULSE_TRIGGER_WINDOW_SECONDS = 90
 PULSE_RESTORE_GRACE_SECONDS = 20
-MAX_RESTART_PULSE_SECONDS = 3
 RUN_ON_SECONDS = 5 * 60
 DEFAULT_RESTART_PULSE_SECONDS = 3
 CONTINUOUS_RESTART_INTERVAL_SECONDS = 12 * 60 * 60
@@ -214,7 +213,7 @@ def normalize_restart_pulse_duration(value: object) -> int:
         duration_s = int(float(value if value is not None else DEFAULT_RESTART_PULSE_SECONDS))
     except (TypeError, ValueError):
         duration_s = DEFAULT_RESTART_PULSE_SECONDS
-    return max(1, min(duration_s, MAX_RESTART_PULSE_SECONDS))
+    return max(1, duration_s)
 
 
 def seconds_to_clock(value: float | None) -> str:
@@ -1368,7 +1367,7 @@ class QuietThreadingHTTPServer(ThreadingHTTPServer):
 
 
 class OpenPoolHandler(BaseHTTPRequestHandler):
-    server_version = "OpenPool/1.1.8"
+    server_version = "OpenPool/1.1.9"
     protocol_version = "HTTP/1.1"
 
     def do_GET(self) -> None:

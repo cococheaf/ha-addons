@@ -118,7 +118,7 @@ configuration:
     fields:
       pulse_duration_s:
         name: Pulse-Dauer
-        description: Sekunden, die die Pumpe pro Restart-Pulse ausgeschaltet bleibt. OpenPool begrenzt diesen Wert aus Sicherheitsgründen auf maximal 3 Sekunden.
+        description: Sekunden, die die Pumpe pro Restart-Pulse ausgeschaltet bleibt. Diese Dauer gilt für manuelle, geplante und 12h-Restart-Pulse.
       pulse_1:
         name: Pulse 1
         fields:

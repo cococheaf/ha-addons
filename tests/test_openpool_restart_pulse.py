@@ -95,7 +95,7 @@ class RestartPulseTest(unittest.TestCase):
             )
             self.assertNotIn("Heizung AUS", [entry.get("title") for entry in controller.state["command_log"]])
 
-    def test_restart_pulse_duration_is_limited_to_three_seconds(self):
+    def test_restart_pulse_duration_comes_from_addon_option(self):
         with tempfile.TemporaryDirectory() as tmp:
             server = load_openpool_server(Path(tmp), {"restart_pulses": {"pulse_duration_s": 10}})
             server.now_ts = lambda: 1000
@@ -105,13 +105,20 @@ class RestartPulseTest(unittest.TestCase):
             controller.state["master_enabled"] = True
             controller.ha_states = {"pump_switch": {"state": "on", "attributes": {}}}
 
-            self.assertEqual(controller.restart_pulse_duration_s(), 3)
-            self.assertEqual(controller.restart_pulses()[0]["duration_s"], 3)
+            self.assertEqual(controller.restart_pulse_duration_s(), 10)
+            self.assertEqual(controller.restart_pulses()[0]["duration_s"], 10)
 
             controller._start_restart_pulse(10, "Test Restart-Pulse")
 
-            self.assertEqual(controller.state["pending_job"]["until"], 1003)
-            self.assertIn("3 Sekunden", controller.state["command_log"][0]["detail"])
+            self.assertEqual(controller.state["pending_job"]["until"], 1010)
+            self.assertIn("10 Sekunden", controller.state["command_log"][0]["detail"])
+
+    def test_restart_pulse_duration_has_one_second_minimum(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            server = load_openpool_server(Path(tmp), {"restart_pulses": {"pulse_duration_s": 0}})
+            controller = server.OpenPoolController(FakeHomeAssistant())
+
+            self.assertEqual(controller.restart_pulse_duration_s(), 1)
 
 
 if __name__ == "__main__":
