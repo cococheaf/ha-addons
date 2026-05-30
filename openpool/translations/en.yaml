@@ -116,6 +116,9 @@ configuration:
     name: Restart pulses
     description: Automatic short power-off pulses for the chlorinator.
     fields:
+      pulse_duration_s:
+        name: Pulse duration
+        description: Seconds the pump stays off for each restart pulse. OpenPool limits this value to a maximum of 3 seconds for safety.
       pulse_1:
         name: Pulse 1
         fields:
@@ -124,7 +127,8 @@ configuration:
           time:
             name: Time
           duration_s:
-            name: Duration in seconds
+            name: Legacy duration
+            description: Old optional field from previous versions. New configurations use the central pulse duration.
       pulse_2:
         name: Pulse 2
         fields:
@@ -133,7 +137,8 @@ configuration:
           time:
             name: Time
           duration_s:
-            name: Duration in seconds
+            name: Legacy duration
+            description: Old optional field from previous versions. New configurations use the central pulse duration.
       pulse_3:
         name: Pulse 3
         fields:
@@ -142,7 +147,8 @@ configuration:
           time:
             name: Time
           duration_s:
-            name: Duration in seconds
+            name: Legacy duration
+            description: Old optional field from previous versions. New configurations use the central pulse duration.
       pulse_4:
         name: Pulse 4
         fields:
@@ -151,6 +157,7 @@ configuration:
           time:
             name: Time
           duration_s:
-            name: Duration in seconds
+            name: Legacy duration
+            description: Old optional field from previous versions. New configurations use the central pulse duration.
 network:
   8099/tcp: OpenPool web interface

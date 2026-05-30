@@ -31,8 +31,9 @@ DEFAULT_POLL_INTERVAL_SECONDS = 1
 DEFAULT_LOG_LEVEL = "info"
 PULSE_TRIGGER_WINDOW_SECONDS = 90
 PULSE_RESTORE_GRACE_SECONDS = 20
+MAX_RESTART_PULSE_SECONDS = 3
 RUN_ON_SECONDS = 5 * 60
-RESTART_PULSE_SECONDS = 5
+DEFAULT_RESTART_PULSE_SECONDS = 3
 CONTINUOUS_RESTART_INTERVAL_SECONDS = 12 * 60 * 60
 COMMAND_LOG_LIMIT = 6
 WEATHER_FORECAST_REFRESH_SECONDS = 12 * 60 * 60
@@ -206,6 +207,14 @@ def normalize_heater_start_mode(value: object, options: list[str] | tuple[str, .
         if DEFAULT_HEATER_START_MODE.lower() == mode.lower():
             return mode
     return available[0] if available else DEFAULT_HEATER_START_MODE
+
+
+def normalize_restart_pulse_duration(value: object) -> int:
+    try:
+        duration_s = int(float(value if value is not None else DEFAULT_RESTART_PULSE_SECONDS))
+    except (TypeError, ValueError):
+        duration_s = DEFAULT_RESTART_PULSE_SECONDS
+    return max(1, min(duration_s, MAX_RESTART_PULSE_SECONDS))
 
 
 def seconds_to_clock(value: float | None) -> str:
@@ -544,15 +553,30 @@ class OpenPoolController:
     def restart_pulses(self) -> list[dict]:
         configured = self.options().get("restart_pulses") or {}
         defaults = [
-            {"key": "pulse_1", "enabled": True, "time": "11:59", "duration_s": 5},
-            {"key": "pulse_2", "enabled": True, "time": "16:59", "duration_s": 5},
-            {"key": "pulse_3", "enabled": True, "time": "23:59", "duration_s": 5},
-            {"key": "pulse_4", "enabled": False, "time": "00:00", "duration_s": 5},
+            {"key": "pulse_1", "enabled": True, "time": "11:59"},
+            {"key": "pulse_2", "enabled": True, "time": "16:59"},
+            {"key": "pulse_3", "enabled": True, "time": "23:59"},
+            {"key": "pulse_4", "enabled": False, "time": "00:00"},
         ]
+        duration_s = self.restart_pulse_duration_s()
         for pulse in defaults:
             options = configured.get(pulse["key"]) or {}
             pulse.update({key: options[key] for key in pulse.keys() & options.keys()})
+            pulse["duration_s"] = duration_s
         return defaults
+
+    def restart_pulse_duration_s(self) -> int:
+        configured = self.options().get("restart_pulses") or {}
+        value = configured.get("pulse_duration_s")
+        if value is None:
+            # Backward compatibility for installations that still have the old
+            # per-pulse duration fields in their saved add-on options.
+            for key in ("pulse_1", "pulse_2", "pulse_3", "pulse_4"):
+                legacy = configured.get(key) or {}
+                if legacy.get("duration_s") is not None:
+                    value = legacy.get("duration_s")
+                    break
+        return normalize_restart_pulse_duration(value)
 
     def weather_recommendation(self) -> dict:
         if not self.weather_control_enabled():
@@ -741,7 +765,7 @@ class OpenPoolController:
                 self._save_state()
                 self._set_heater_temperature()
             elif action_type == "restart_pulse":
-                self._start_restart_pulse(RESTART_PULSE_SECONDS, "Manueller Restart-Pulse")
+                self._start_restart_pulse(self.restart_pulse_duration_s(), "Manueller Restart-Pulse")
             else:
                 raise ValueError(f"Unknown action type: {action_type}")
 
@@ -865,7 +889,7 @@ class OpenPoolController:
             # Migration path for states written by 0.2.9: restart pulses no
             # longer wait for heat-pump run-on because the pulse is only a few
             # seconds long.
-            duration_s = int(job.get("duration_s") or RESTART_PULSE_SECONDS)
+            duration_s = normalize_restart_pulse_duration(job.get("duration_s"))
             title = str(job.get("title") or "Restart-Pulse")
             self.state["pending_job"] = None
             self._start_restart_pulse(duration_s, title)
@@ -954,7 +978,7 @@ class OpenPoolController:
             if done.get(key):
                 continue
             done[key] = True
-            self._start_restart_pulse(int(pulse.get("duration_s") or 5), f"Automatischer {pulse['key']}")
+            self._start_restart_pulse(self.restart_pulse_duration_s(), f"Automatischer {pulse['key']}")
             break
 
     def _continuous_restart_due_ts(self, current_ts: float) -> float:
@@ -970,7 +994,7 @@ class OpenPoolController:
         if current_ts < self._continuous_restart_due_ts(current_ts):
             return
         self.state["continuous_restart_last_at"] = current_ts
-        self._start_restart_pulse(RESTART_PULSE_SECONDS, "12h-Restart Dauerbetrieb")
+        self._start_restart_pulse(self.restart_pulse_duration_s(), "12h-Restart Dauerbetrieb")
 
     def _apply_control_rules(self) -> None:
         if self.state.get("pending_job"):
@@ -1313,12 +1337,13 @@ class OpenPoolController:
 
     def _start_restart_pulse(self, duration_s: int, title: str) -> None:
         current_ts = now_ts()
+        duration_s = normalize_restart_pulse_duration(duration_s)
         pump_mode = str(self.state.get("pump_mode") or "Aus")
         restore_pump = bool(self.state.get("master_enabled")) and self._pump_should_run(pump_mode)
         self._turn_pump(False)
         self.state["pending_job"] = {
             "type": "restart_pulse",
-            "until": current_ts + max(1, duration_s),
+            "until": current_ts + duration_s,
             "restore_pump": restore_pump,
         }
         if self.state.get("pump_mode") == "Dauerbetrieb":
@@ -1343,7 +1368,7 @@ class QuietThreadingHTTPServer(ThreadingHTTPServer):
 
 
 class OpenPoolHandler(BaseHTTPRequestHandler):
-    server_version = "OpenPool/1.1.7"
+    server_version = "OpenPool/1.1.8"
     protocol_version = "HTTP/1.1"
 
     def do_GET(self) -> None:

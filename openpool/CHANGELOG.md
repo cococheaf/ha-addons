@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.8
+
+- Add one central add-on option `restart_pulses.pulse_duration_s` (`Pulse-Dauer`)
+  for manual, scheduled and 12-hour restart pulses.
+- Reduce the default pulse duration to 3 seconds and clamp every restart pulse
+  to a maximum pump-off time of 3 seconds.
+- Keep legacy per-pulse `duration_s` values as migration fallback, but clamp
+  them to the same safety limit.
+- Keep legacy per-pulse duration options schema-compatible during upgrades.
+
 ## 1.1.7
 
 - Keep heat-pump control untouched during short restart pulses and add a short
